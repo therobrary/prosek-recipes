@@ -6,6 +6,6 @@ CREATE TABLE recipes (
     cook_time TEXT,
     ingredients TEXT, -- JSON Array
     directions TEXT, -- JSON Array
-    category TEXT,
+    tags TEXT, -- JSON Array
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

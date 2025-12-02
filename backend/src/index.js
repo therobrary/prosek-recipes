@@ -18,11 +18,24 @@ export default {
       if (path === '/api/recipes' && request.method === 'GET') {
         const { results } = await env.DB.prepare('SELECT * FROM recipes ORDER BY title ASC').all();
         // Parse JSON strings back to arrays
-        const recipes = results.map(r => ({
-            ...r,
-            ingredients: JSON.parse(r.ingredients),
-            directions: JSON.parse(r.directions)
-        }));
+        const recipes = results.map(r => {
+            let tags = [];
+            try {
+                // Handle case where tags might be null or invalid JSON
+                tags = r.tags ? JSON.parse(r.tags) : [];
+            } catch (e) {
+                console.warn('Failed to parse tags for recipe', r.id, e);
+                // Fallback: if it's a plain string (legacy data issue), treat as single tag
+                if (typeof r.tags === 'string') tags = [r.tags];
+            }
+
+            return {
+                ...r,
+                ingredients: JSON.parse(r.ingredients),
+                directions: JSON.parse(r.directions),
+                tags: tags
+            };
+        });
         return new Response(JSON.stringify(recipes), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -30,12 +43,12 @@ export default {
 
       if (path === '/api/recipes' && request.method === 'POST') {
         const data = await request.json();
-        const { title, serves, cook_time, ingredients, directions, category } = data;
+        const { title, serves, cook_time, ingredients, directions, tags } = data;
 
         const result = await env.DB.prepare(
-          'INSERT INTO recipes (title, serves, cook_time, ingredients, directions, category) VALUES (?, ?, ?, ?, ?, ?)'
+          'INSERT INTO recipes (title, serves, cook_time, ingredients, directions, tags) VALUES (?, ?, ?, ?, ?, ?)'
         )
-        .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), category)
+        .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []))
         .run();
 
         return new Response(JSON.stringify({ success: true, id: result.meta.last_row_id }), {
@@ -50,12 +63,12 @@ export default {
 
         if (request.method === 'PUT') {
            const data = await request.json();
-           const { title, serves, cook_time, ingredients, directions, category } = data;
+           const { title, serves, cook_time, ingredients, directions, tags } = data;
 
            await env.DB.prepare(
-             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, category = ? WHERE id = ?'
+             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ? WHERE id = ?'
            )
-           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), category, id)
+           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []), id)
            .run();
 
            return new Response(JSON.stringify({ success: true }), {
