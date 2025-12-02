@@ -5,4 +5,4 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "family-recipes-db"
-database_id = "YOUR_DATABASE_ID" # User will need to fill this in
+database_id = "a486d94c-cf9d-40c7-8b73-a958cccb174e"
