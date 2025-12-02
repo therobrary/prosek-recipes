@@ -1,3 +1,4 @@
+// This is a test comment to trigger CI/CD.
 export default {
   async fetch(request, env) {
     const corsHeaders = {
