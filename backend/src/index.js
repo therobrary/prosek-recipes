@@ -73,7 +73,8 @@ export default {
       return new Response('Not Found', { status: 404, headers: corsHeaders });
 
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+      console.error('Internal Server Error:', err);
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500, headers: corsHeaders });
     }
   },
 };
