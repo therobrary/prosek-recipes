@@ -71,7 +71,7 @@ export default {
            await env.DB.prepare(
              'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ? WHERE id = ?'
            )
-           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []), id)
+           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), id)
            .run();
 
            return new Response(JSON.stringify({ success: true }), {
