@@ -208,7 +208,7 @@
                                         <ul class="space-y-4 text-sm text-gray-600">
                                             <template x-for="(step, index) in selectedRecipe?.directions" :key="index">
                                                 <li :class="step.startsWith('__SECTION__') ? 'font-bold text-gray-800 mt-4 text-base' : 'flex items-start'">
-                                                     <span x-show="!step.startsWith('__SECTION__')" class="font-bold text-gray-300 mr-2" x-text="index + 1"></span>
+                                                     <span x-show="!step.startsWith('__SECTION__')" class="font-bold text-gray-300 mr-2" x-text="getStepNumber(selectedRecipe.directions, index)"></span>
                                                      <span x-text="step.replace('__SECTION__', '')"></span>
                                                 </li>
                                             </template>
@@ -295,6 +295,17 @@
                 resetFilters() {
                     this.activeCategory = 'All';
                     this.searchQuery = '';
+                },
+
+                getStepNumber(directions, currentIndex) {
+                    // Count only non-section steps up to and including current index
+                    let stepNumber = 0;
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (!directions[i].startsWith('__SECTION__')) {
+                            stepNumber++;
+                        }
+                    }
+                    return stepNumber;
                 }
             }
         }
