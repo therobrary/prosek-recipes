@@ -81,22 +81,15 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
 
-        <!-- Category Filters -->
+        <!-- Tag Filters -->
         <div class="mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
             <div class="flex gap-2">
-                <button
-                    @click="activeCategory = 'All'"
-                    :class="activeCategory === 'All' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
-                    class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition-colors border border-transparent"
-                >
-                    All Recipes
-                </button>
-                <template x-for="category in categories" :key="category">
+                <template x-for="tag in allTags" :key="tag">
                     <button
-                        @click="activeCategory = category"
-                        :class="activeCategory === category ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                        @click="toggleTag(tag)"
+                        :class="selectedTags.includes(tag) ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
                         class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition-colors border border-transparent"
-                        x-text="category"
+                        x-text="tag"
                     ></button>
                 </template>
             </div>
@@ -107,12 +100,14 @@
             <template x-for="(recipe, index) in filteredRecipes" :key="recipe.id || index">
                 <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer group" @click="openRecipe(recipe)">
                     <div class="p-6 flex flex-col h-full">
-                        <div class="flex justify-between items-start mb-2">
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                :class="getCategoryColor(recipe.category)"
-                                x-text="recipe.category"
-                            ></span>
+                        <div class="flex flex-wrap gap-1 mb-2">
+                            <template x-for="tag in recipe.tags" :key="tag">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                    :class="getCategoryColor(tag)"
+                                    x-text="tag"
+                                ></span>
+                            </template>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors" x-text="recipe.title"></h3>
                         <p class="text-sm text-gray-500 line-clamp-3 mb-4 flex-grow">
@@ -143,7 +138,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 class="text-lg font-medium text-gray-900">No recipes found</h3>
-            <p class="text-gray-500 mt-1">Try adjusting your search or category.</p>
+            <p class="text-gray-500 mt-1">Try adjusting your search or filters.</p>
         </div>
 
         <!-- Recipe Detail Modal -->
@@ -191,9 +186,11 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-2 flex flex-wrap gap-3 text-sm text-gray-500 mb-6">
-                                    <span class="px-2 py-1 bg-gray-100 rounded text-gray-700 font-medium" x-text="selectedRecipe?.category"></span>
-                                    <span x-show="selectedRecipe?.serves" class="flex items-center gap-1">
+                                <div class="mt-2 flex flex-wrap gap-2 text-sm text-gray-500 mb-6">
+                                    <template x-for="tag in selectedRecipe?.tags" :key="tag">
+                                        <span class="px-2 py-1 bg-gray-100 rounded text-gray-700 font-medium" x-text="tag"></span>
+                                    </template>
+                                    <span x-show="selectedRecipe?.serves" class="flex items-center gap-1" :class="selectedRecipe?.tags?.length > 0 ? 'ml-2' : ''">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
@@ -260,25 +257,43 @@
                                     <input type="text" x-model="formData.title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Category</label>
-                                        <select x-model="formData.category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
-                                            <template x-for="cat in categories" :key="cat">
-                                                <option :value="cat" x-text="cat"></option>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Tags</label>
+                                    <div class="mt-1 border border-gray-300 rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                        <div class="flex flex-wrap gap-2 mb-2" x-show="formData.tags.length > 0">
+                                            <template x-for="(tag, index) in formData.tags" :key="index">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary text-white">
+                                                    <span x-text="tag"></span>
+                                                    <button type="button" @click="removeTag(index)" class="ml-1 text-white hover:text-gray-200 focus:outline-none">
+                                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
                                             </template>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            x-model="tagInput"
+                                            @keydown.enter.prevent="addTag()"
+                                            @keydown.comma.prevent="addTag()"
+                                            @keydown.backspace="handleBackspace()"
+                                            placeholder="Type a tag and press Enter..."
+                                            class="block w-full border-none focus:ring-0 p-0 text-sm"
+                                        >
                                     </div>
+                                    <p class="text-xs text-gray-500 mt-1">Press Enter or Comma to add a tag.</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Serves (e.g. 4-6)</label>
                                         <input type="text" x-model="formData.serves" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Cook Time (e.g. 45 mins)</label>
-                                    <input type="text" x-model="formData.cook_time" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Cook Time (e.g. 45 mins)</label>
+                                        <input type="text" x-model="formData.cook_time" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                    </div>
                                 </div>
 
                                 <div>
@@ -326,14 +341,15 @@
             return {
                 recipes: [],
                 searchQuery: '',
-                activeCategory: 'All',
-                categories: [],
+                selectedTags: [],
+                allTags: [],
                 selectedRecipe: null,
                 showFormModal: false,
+                tagInput: '',
                 formData: {
                     id: null,
                     title: '',
-                    category: 'Main Dish',
+                    tags: [],
                     serves: '',
                     cook_time: '',
                     ingredientsText: '',
@@ -350,9 +366,18 @@
                         if (!response.ok) throw new Error('Failed to fetch');
                         this.recipes = await response.json();
 
-                        // Extract unique categories
-                        const cats = new Set(this.recipes.map(r => r.category));
-                        this.categories = Array.from(cats).sort();
+                        // Extract unique tags
+                        const tagsSet = new Set();
+                        this.recipes.forEach(r => {
+                            if (Array.isArray(r.tags)) {
+                                r.tags.forEach(t => {
+                                    if (t && t.trim()) { // Filter out empty/whitespace-only tags
+                                        tagsSet.add(t);
+                                    }
+                                });
+                            }
+                        });
+                        this.allTags = Array.from(tagsSet).sort();
                     } catch (error) {
                         console.error('Error loading recipes:', error);
                     }
@@ -366,10 +391,21 @@
                     return this.recipes.filter(recipe => {
                         const matchesSearch = recipe.title.toLowerCase().includes(query) ||
                                               recipe.ingredients.some(i => i.toLowerCase().includes(query));
-                        const matchesCategory = this.activeCategory === 'All' || recipe.category === this.activeCategory;
 
-                        return matchesSearch && matchesCategory;
+                        // Check if recipe has ALL selected tags (AND logic)
+                        const matchesTags = this.selectedTags.length === 0 ||
+                                            this.selectedTags.every(tag => recipe.tags && recipe.tags.includes(tag));
+
+                        return matchesSearch && matchesTags;
                     });
+                },
+
+                toggleTag(tag) {
+                    if (this.selectedTags.includes(tag)) {
+                        this.selectedTags = this.selectedTags.filter(t => t !== tag);
+                    } else {
+                        this.selectedTags.push(tag);
+                    }
                 },
 
                 getCategoryColor(category) {
@@ -391,7 +427,7 @@
                 },
 
                 resetFilters() {
-                    this.activeCategory = 'All';
+                    this.selectedTags = [];
                     this.searchQuery = '';
                 },
 
@@ -406,12 +442,13 @@
                 },
 
                 openForm(recipe = null) {
+                    this.tagInput = '';
                     if (recipe) {
                         // Edit Mode
                         this.formData = {
                             id: recipe.id,
                             title: recipe.title,
-                            category: recipe.category,
+                            tags: recipe.tags ? [...recipe.tags] : [],
                             serves: recipe.serves,
                             cook_time: recipe.cook_time,
                             ingredientsText: recipe.ingredients.join('\n'),
@@ -422,7 +459,7 @@
                         this.formData = {
                             id: null,
                             title: '',
-                            category: this.categories[0] || 'Main Dish',
+                            tags: [],
                             serves: '',
                             cook_time: '',
                             ingredientsText: '',
@@ -434,13 +471,40 @@
 
                 closeForm() {
                     this.showFormModal = false;
-                    this.formData = { id: null, title: '', category: '', serves: '', cook_time: '', ingredientsText: '', directionsText: '' };
+                    this.tagInput = '';
+                    this.formData = { id: null, title: '', tags: [], serves: '', cook_time: '', ingredientsText: '', directionsText: '' };
+                },
+
+                addTag() {
+                    const tag = this.tagInput.trim();
+                    // Normalize to title case: first letter uppercase, rest lowercase
+                    const normalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase();
+                    // Check for duplicates case-insensitively
+                    if (normalizedTag && !this.formData.tags.some(t => t.toLowerCase() === normalizedTag.toLowerCase())) {
+                        this.formData.tags.push(normalizedTag);
+                    }
+                    this.tagInput = '';
+                },
+
+                removeTag(index) {
+                    this.formData.tags.splice(index, 1);
+                },
+
+                handleBackspace() {
+                    if (this.tagInput === '' && this.formData.tags.length > 0) {
+                        this.formData.tags.pop();
+                    }
                 },
 
                 async saveRecipe() {
+                    // Ensure current tag input is added if valid
+                    if (this.tagInput.trim()) {
+                        this.addTag();
+                    }
+
                     const recipeData = {
                         title: this.formData.title,
-                        category: this.formData.category,
+                        tags: this.formData.tags,
                         serves: this.formData.serves,
                         cook_time: this.formData.cook_time,
                         ingredients: this.formData.ingredientsText.split('\n').filter(line => line.trim() !== ''),
