@@ -370,7 +370,11 @@
                         const tagsSet = new Set();
                         this.recipes.forEach(r => {
                             if (Array.isArray(r.tags)) {
-                                r.tags.forEach(t => tagsSet.add(t));
+                                r.tags.forEach(t => {
+                                    if (t && t.trim()) { // Filter out empty/whitespace-only tags
+                                        tagsSet.add(t);
+                                    }
+                                });
                             }
                         });
                         this.allTags = Array.from(tagsSet).sort();
