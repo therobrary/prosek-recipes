@@ -477,8 +477,11 @@
 
                 addTag() {
                     const tag = this.tagInput.trim();
-                    if (tag && !this.formData.tags.includes(tag)) {
-                        this.formData.tags.push(tag);
+                    // Normalize to title case: first letter uppercase, rest lowercase
+                    const normalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase();
+                    // Check for duplicates case-insensitively
+                    if (normalizedTag && !this.formData.tags.some(t => t.toLowerCase() === normalizedTag.toLowerCase())) {
+                        this.formData.tags.push(normalizedTag);
                     }
                     this.tagInput = '';
                 },
