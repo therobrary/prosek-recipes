@@ -25,9 +25,12 @@ export default {
                 tags = r.tags ? JSON.parse(r.tags) : [];
             } catch (e) {
                 console.warn('Failed to parse tags for recipe', r.id, e);
-                // Fallback: if it's a plain string (legacy data issue), treat as single tag
-                if (typeof r.tags === 'string') tags = [r.tags];
-            }
+                // Improved fallback: try to parse as comma-separated string, else empty array
+                if (typeof r.tags === 'string' && r.tags.trim() !== '') {
+                    tags = r.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                } else {
+                    tags = [];
+                }
 
             return {
                 ...r,
