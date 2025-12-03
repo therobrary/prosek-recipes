@@ -19,15 +19,48 @@ export default {
         const { results } = await env.DB.prepare('SELECT * FROM recipes ORDER BY title ASC').all();
         // Parse JSON strings back to arrays
         const recipes = results.map(r => {
+            let tags = [];
+            try {
+                // Handle case where tags might be null or invalid JSON
+                tags = r.tags ? JSON.parse(r.tags) : [];
+            } catch (e) {
+                console.warn('Failed to parse tags for recipe', r.id, e);
+                // Improved fallback: try to parse as comma-separated string, else empty array
+                if (typeof r.tags === 'string' && r.tags.trim() !== '') {
+                    tags = r.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                } else {
+                    tags = [];
+                }
+            }
+
+            let ingredients = [];
+            try {
+                ingredients = JSON.parse(r.ingredients);
+            } catch (e) {
+                console.warn('Failed to parse ingredients for recipe', r.id, e);
+            }
+
+            let directions = [];
+            try {
+                directions = JSON.parse(r.directions);
+            } catch (e) {
+                console.warn('Failed to parse directions for recipe', r.id, e);
+            }
+
             return {
                 ...r,
-                ingredients: JSON.parse(r.ingredients),
-                directions: JSON.parse(r.directions),
-                tags: JSON.parse(r.tags || '[]')
+                ingredients: ingredients,
+                directions: directions,
+                tags: tags
             };
         });
+
         return new Response(JSON.stringify(recipes), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=60' // Cache for 60 seconds
+          },
         });
       }
 
