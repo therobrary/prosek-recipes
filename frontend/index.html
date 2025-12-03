@@ -550,7 +550,6 @@
 
                 scaleIngredient(ingredient, multiplier) {
                     if (multiplier === 1) return ingredient;
-                    if (ingredient.startsWith('__SECTION__')) return ingredient;
 
                     // Regex to find leading numbers (integers, decimals, fractions)
                     // Matches: "1", "1.5", "1/2", "1 1/2", "1-2"
