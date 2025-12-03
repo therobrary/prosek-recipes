@@ -259,28 +259,48 @@
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Tags</label>
-                                    <div class="mt-1 border border-gray-300 rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-                                        <div class="flex flex-wrap gap-2 mb-2" x-show="formData.tags.length > 0">
-                                            <template x-for="(tag, index) in formData.tags" :key="index">
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary text-white">
-                                                    <span x-text="tag"></span>
-                                                    <button type="button" @click="removeTag(index)" class="ml-1 text-white hover:text-gray-200 focus:outline-none">
-                                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                        </svg>
-                                                    </button>
-                                                </span>
-                                            </template>
+                                    <div class="relative">
+                                        <div class="mt-1 border border-gray-300 rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary bg-white">
+                                            <div class="flex flex-wrap gap-2 mb-2" x-show="formData.tags.length > 0">
+                                                <template x-for="(tag, index) in formData.tags" :key="index">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary text-white">
+                                                        <span x-text="tag"></span>
+                                                        <button type="button" @click="removeTag(index)" class="ml-1 text-white hover:text-gray-200 focus:outline-none">
+                                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                x-model="tagInput"
+                                                @keydown.enter.prevent="addTag()"
+                                                @keydown.comma.prevent="addTag()"
+                                                @keydown.backspace="handleBackspace()"
+                                                placeholder="Type a tag and press Enter..."
+                                                class="block w-full border-none focus:ring-0 p-0 text-sm"
+                                                autocomplete="off"
+                                            >
                                         </div>
-                                        <input
-                                            type="text"
-                                            x-model="tagInput"
-                                            @keydown.enter.prevent="addTag()"
-                                            @keydown.comma.prevent="addTag()"
-                                            @keydown.backspace="handleBackspace()"
-                                            placeholder="Type a tag and press Enter..."
-                                            class="block w-full border-none focus:ring-0 p-0 text-sm"
-                                        >
+                                        <!-- Autocomplete Dropdown -->
+                                        <ul x-show="tagInput && suggestedTags.length > 0"
+                                            class="absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+                                            x-cloak
+                                            x-transition:enter="transition ease-out duration-100"
+                                            x-transition:enter-start="opacity-0 scale-95"
+                                            x-transition:enter-end="opacity-100 scale-100"
+                                            x-transition:leave="transition ease-in duration-75"
+                                            x-transition:leave-start="opacity-100 scale-100"
+                                            x-transition:leave-end="opacity-0 scale-95">
+                                            <template x-for="tag in suggestedTags" :key="tag">
+                                                <li @click="addExistingTag(tag)"
+                                                    class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors"
+                                                    x-text="tag">
+                                                </li>
+                                            </template>
+                                        </ul>
                                     </div>
                                     <p class="text-xs text-gray-500 mt-1">Press Enter or Comma to add a tag.</p>
                                 </div>
@@ -383,6 +403,15 @@
                     }
                 },
 
+                get suggestedTags() {
+                    if (this.tagInput === '') return [];
+                    const input = this.tagInput.toLowerCase();
+                    return this.allTags.filter(tag =>
+                        tag.toLowerCase().includes(input) &&
+                        !this.formData.tags.some(t => t.toLowerCase() === tag.toLowerCase())
+                    );
+                },
+
                 get filteredRecipes() {
                     if (!this.recipes) return [];
 
@@ -482,6 +511,13 @@
                     // Check for duplicates case-insensitively
                     if (normalizedTag && !this.formData.tags.some(t => t.toLowerCase() === normalizedTag.toLowerCase())) {
                         this.formData.tags.push(normalizedTag);
+                    }
+                    this.tagInput = '';
+                },
+
+                addExistingTag(tag) {
+                    if (tag && !this.formData.tags.some(t => t.toLowerCase() === tag.toLowerCase())) {
+                        this.formData.tags.push(tag);
                     }
                     this.tagInput = '';
                 },
