@@ -52,6 +52,11 @@ export default {
                 ingredients: ingredients,
                 directions: directions,
                 tags: tags
+            return {
+                ...r,
+                ingredients: JSON.parse(r.ingredients),
+                directions: JSON.parse(r.directions),
+                tags: JSON.parse(r.tags || '[]')
             };
         });
 
