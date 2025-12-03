@@ -31,16 +31,36 @@ export default {
                 } else {
                     tags = [];
                 }
+            }
+
+            let ingredients = [];
+            try {
+                ingredients = JSON.parse(r.ingredients);
+            } catch (e) {
+                console.warn('Failed to parse ingredients for recipe', r.id, e);
+            }
+
+            let directions = [];
+            try {
+                directions = JSON.parse(r.directions);
+            } catch (e) {
+                console.warn('Failed to parse directions for recipe', r.id, e);
+            }
 
             return {
                 ...r,
-                ingredients: JSON.parse(r.ingredients),
-                directions: JSON.parse(r.directions),
+                ingredients: ingredients,
+                directions: directions,
                 tags: tags
             };
         });
+
         return new Response(JSON.stringify(recipes), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=60' // Cache for 60 seconds
+          },
         });
       }
 
