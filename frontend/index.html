@@ -516,7 +516,7 @@
                 },
 
                 addExistingTag(tag) {
-                    if (tag && !this.formData.tags.includes(tag)) {
+                    if (tag && !this.formData.tags.some(t => t.toLowerCase() === tag.toLowerCase())) {
                         this.formData.tags.push(tag);
                     }
                     this.tagInput = '';
