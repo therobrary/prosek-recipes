@@ -6,3 +6,7 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "family-recipes-db"
 database_id = "a486d94c-cf9d-40c7-8b73-a958cccb174e"
+
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "family-recipes-images"

@@ -15,6 +15,53 @@ export default {
     const path = url.pathname;
 
     try {
+      // Serve images from R2
+      const imageMatch = path.match(/^\/api\/images\/(.+)$/);
+      if (imageMatch && request.method === 'GET') {
+          const key = imageMatch[1];
+          const object = await env.IMAGES_BUCKET.get(key);
+
+          if (!object) {
+              return new Response('Image not found', { status: 404, headers: corsHeaders });
+          }
+
+          const headers = new Headers();
+          object.writeHttpMetadata(headers);
+          headers.set('etag', object.httpEtag);
+          headers.set('Access-Control-Allow-Origin', '*');
+          headers.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+
+          return new Response(object.body, {
+              headers,
+          });
+      }
+
+      // Upload Image Endpoint
+      if (path === '/api/upload-image' && request.method === 'PUT') {
+          const contentType = request.headers.get('Content-Type');
+          if (!contentType || !contentType.startsWith('image/')) {
+              return new Response(JSON.stringify({ error: 'Invalid content type. Only images allowed.' }), { status: 400, headers: corsHeaders });
+          }
+
+          // Generate a unique filename
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substring(2, 10);
+          const extension = contentType.split('/')[1] || 'bin';
+          const key = `${timestamp}-${random}.${extension}`;
+
+          await env.IMAGES_BUCKET.put(key, request.body, {
+              httpMetadata: { contentType: contentType }
+          });
+
+          // Return the full URL that can be used to retrieve the image
+          const imageUrl = `${url.origin}/api/images/${key}`;
+
+          return new Response(JSON.stringify({ success: true, url: imageUrl, key: key }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+      }
+
+
       if (path === '/api/recipes' && request.method === 'GET') {
         const { results } = await env.DB.prepare('SELECT * FROM recipes ORDER BY title ASC').all();
         // Parse JSON strings back to arrays
@@ -66,12 +113,12 @@ export default {
 
       if (path === '/api/recipes' && request.method === 'POST') {
         const data = await request.json();
-        const { title, serves, cook_time, ingredients, directions, tags } = data;
+        const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
 
         const result = await env.DB.prepare(
-          'INSERT INTO recipes (title, serves, cook_time, ingredients, directions, tags) VALUES (?, ?, ?, ?, ?, ?)'
+          'INSERT INTO recipes (title, serves, cook_time, ingredients, directions, tags, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
         )
-        .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []))
+        .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []), image_url || null)
         .run();
 
         return new Response(JSON.stringify({ success: true, id: result.meta.last_row_id }), {
@@ -86,12 +133,12 @@ export default {
 
         if (request.method === 'PUT') {
            const data = await request.json();
-           const { title, serves, cook_time, ingredients, directions, tags } = data;
+           const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
 
            await env.DB.prepare(
-             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ? WHERE id = ?'
+             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ?, image_url = ? WHERE id = ?'
            )
-           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), id)
+           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), image_url || null, id)
            .run();
 
            return new Response(JSON.stringify({ success: true }), {
@@ -101,6 +148,7 @@ export default {
 
         if (request.method === 'DELETE') {
             await env.DB.prepare('DELETE FROM recipes WHERE id = ?').bind(id).run();
+            // Optional: We could delete the image from R2 here if we fetched the recipe first to get the URL.
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });

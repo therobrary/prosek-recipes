@@ -154,7 +154,14 @@
                                 ></span>
                             </template>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors" x-text="recipe.title"></h3>
+                        <div class="flex items-start gap-4 mb-2">
+                             <div class="flex-grow">
+                                <h3 class="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors" x-text="recipe.title"></h3>
+                             </div>
+                             <div x-show="recipe.image_url" class="flex-shrink-0">
+                                <img :src="recipe.image_url" alt="Recipe Image" class="w-16 h-16 object-cover rounded-md shadow-sm">
+                             </div>
+                        </div>
                         <p class="text-sm text-gray-500 line-clamp-3 mb-4 flex-grow">
                             <span x-text="recipe.ingredients.map(i => i.startsWith('__SECTION__') ? '' : i).filter(i => i).slice(0, 5).join(', ')"></span>...
                         </p>
@@ -215,7 +222,7 @@
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-h-[85vh] overflow-y-auto">
                         <div class="sm:flex sm:items-start">
                             <div class="mt-3 text-left sm:mt-0 sm:text-left w-full">
-                                <div class="flex justify-between items-start">
+                                <div class="flex justify-between items-start mb-4">
                                     <h3 class="text-2xl leading-6 font-bold text-gray-900 serif" id="modal-title" x-text="selectedRecipe?.title"></h3>
                                     <div class="flex gap-2 print:hidden">
                                         <!-- Print Button -->
@@ -235,6 +242,10 @@
                                             </svg>
                                         </button>
                                     </div>
+                                </div>
+
+                                <div x-show="selectedRecipe?.image_url" class="mb-6 w-full h-64 overflow-hidden rounded-lg shadow-md">
+                                    <img :src="selectedRecipe?.image_url" alt="Recipe Image" class="w-full h-full object-cover">
                                 </div>
 
                                 <div class="mt-2 flex flex-wrap gap-2 text-sm text-gray-500 mb-6">
@@ -324,6 +335,22 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Title</label>
                                     <input type="text" x-model="formData.title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Image</label>
+                                    <div class="mt-1 flex items-center gap-4">
+                                        <div x-show="formData.image_url" class="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100 border">
+                                            <img :src="formData.image_url" class="w-full h-full object-cover">
+                                            <button type="button" @click="formData.image_url = null" class="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl opacity-75 hover:opacity-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <input type="file" @change="handleFileSelect" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer">
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1" x-text="uploading ? 'Uploading image...' : 'Optional: Upload a photo for this recipe'"></p>
                                 </div>
 
                                 <div>
@@ -418,6 +445,8 @@
                 showFormModal: false,
                 multiplier: 1,
                 tagInput: '',
+                uploading: false,
+                selectedFile: null,
                 formData: {
                     id: null,
                     title: '',
@@ -425,7 +454,8 @@
                     serves: '',
                     cook_time: '',
                     ingredientsText: '',
-                    directionsText: ''
+                    directionsText: '',
+                    image_url: null
                 },
 
                 async init() {
@@ -589,6 +619,7 @@
 
                 openForm(recipe = null) {
                     this.tagInput = '';
+                    this.selectedFile = null;
                     if (recipe) {
                         // Edit Mode
                         this.formData = {
@@ -598,7 +629,8 @@
                             serves: recipe.serves,
                             cook_time: recipe.cook_time,
                             ingredientsText: recipe.ingredients.join('\n'),
-                            directionsText: recipe.directions.join('\n')
+                            directionsText: recipe.directions.join('\n'),
+                            image_url: recipe.image_url || null
                         };
                     } else {
                         // Add Mode
@@ -609,7 +641,8 @@
                             serves: '',
                             cook_time: '',
                             ingredientsText: '',
-                            directionsText: ''
+                            directionsText: '',
+                            image_url: null
                         };
                     }
                     this.showFormModal = true;
@@ -618,7 +651,21 @@
                 closeForm() {
                     this.showFormModal = false;
                     this.tagInput = '';
-                    this.formData = { id: null, title: '', tags: [], serves: '', cook_time: '', ingredientsText: '', directionsText: '' };
+                    this.selectedFile = null;
+                    this.formData = { id: null, title: '', tags: [], serves: '', cook_time: '', ingredientsText: '', directionsText: '', image_url: null };
+                },
+
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.selectedFile = file;
+                        // Preview
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.formData.image_url = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 },
 
                 addTag() {
@@ -648,13 +695,39 @@
                         this.addTag();
                     }
 
+                    this.uploading = true;
+                    let imageUrl = this.formData.image_url;
+
+                    // If a new file is selected, upload it first
+                    if (this.selectedFile) {
+                        try {
+                            const uploadResponse = await fetch(`${API_URL.replace('/api/recipes', '')}/api/upload-image`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': this.selectedFile.type
+                                },
+                                body: this.selectedFile
+                            });
+
+                            if (!uploadResponse.ok) throw new Error('Image upload failed');
+                            const uploadResult = await uploadResponse.json();
+                            imageUrl = uploadResult.url;
+                        } catch (e) {
+                            console.error('Image upload error:', e);
+                            alert('Failed to upload image. Saving recipe without new image.');
+                            this.uploading = false;
+                            return;
+                        }
+                    }
+
                     const recipeData = {
                         title: this.formData.title,
                         tags: this.formData.tags,
                         serves: this.formData.serves,
                         cook_time: this.formData.cook_time,
                         ingredients: this.formData.ingredientsText.split('\n').filter(line => line.trim() !== ''),
-                        directions: this.formData.directionsText.split('\n').filter(line => line.trim() !== '')
+                        directions: this.formData.directionsText.split('\n').filter(line => line.trim() !== ''),
+                        image_url: imageUrl
                     };
 
                     try {
@@ -686,6 +759,8 @@
                     } catch (error) {
                         console.error('Error saving recipe:', error);
                         alert('Failed to save recipe. Please try again.');
+                    } finally {
+                        this.uploading = false;
                     }
                 }
             }
