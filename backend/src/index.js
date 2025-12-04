@@ -155,8 +155,13 @@ export default {
         }
 
         if (request.method === 'DELETE') {
+            // Fetch the recipe to get the image_url before deleting
+            const { results } = await env.DB.prepare('SELECT image_url FROM recipes WHERE id = ?').bind(id).all();
+            if (results[0]?.image_url) {
+                const keyMatch = results[0].image_url.match(/\/api\/images\/(.+)$/);
+                if (keyMatch) await env.IMAGES_BUCKET.delete(keyMatch[1]);
+            }
             await env.DB.prepare('DELETE FROM recipes WHERE id = ?').bind(id).run();
-            // Optional: We could delete the image from R2 here if we fetched the recipe first to get the URL.
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
