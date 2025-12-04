@@ -46,7 +46,15 @@ export default {
           // Generate a unique filename
           const timestamp = Date.now();
           const random = Math.random().toString(36).substring(2, 10);
-          const extension = contentType.split('/')[1] || 'bin';
+          const mimeToExt = {
+              'image/jpeg': 'jpg',
+              'image/jpg': 'jpg',
+              'image/png': 'png',
+              'image/gif': 'gif',
+              'image/webp': 'webp',
+              'image/svg+xml': 'svg'
+          };
+          const extension = mimeToExt[contentType] || 'bin';
           const key = `${timestamp}-${random}.${extension}`;
 
           await env.IMAGES_BUCKET.put(key, request.body, {
