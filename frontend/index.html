@@ -53,8 +53,8 @@
             h3#modal-title { font-family: 'Playfair Display', serif !important; color: black !important; font-size: 24pt !important; text-align: center !important; margin-bottom: 0.5cm !important; }
             h4 { font-family: 'Playfair Display', serif !important; color: black !important; margin-top: 1cm !important; }
 
-            /* Layout - Force Grid */
-            .grid { display: grid !important; grid-template-columns: 1fr 1.6fr !important; gap: 1cm !important; }
+            /* Layout - Force Grid for recipe content */
+            body > div[aria-labelledby="modal-title"] .grid { display: grid !important; grid-template-columns: 1fr 1.6fr !important; gap: 1cm !important; }
 
             /* Ensure Lists are visible and break correctly */
             ul { page-break-inside: auto; }
