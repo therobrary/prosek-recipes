@@ -714,7 +714,7 @@
                             imageUrl = uploadResult.url;
                         } catch (e) {
                             console.error('Image upload error:', e);
-                            alert('Failed to upload image. Saving recipe without new image.');
+                            alert('Failed to upload image. Recipe not saved.');
                             this.uploading = false;
                             return;
                         }
