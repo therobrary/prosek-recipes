@@ -1,10 +1,118 @@
-// This is a test comment to trigger CI/CD.
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://prosek-recipes.pages.dev',
+  'https://recipes.prosek.family',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080',
+];
+
+// Input validation helper
+function validateRecipeData(data) {
+  const errors = [];
+
+  // Title is required and must be a non-empty string
+  if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
+    errors.push('Title is required');
+  } else if (data.title.length > 200) {
+    errors.push('Title must be 200 characters or less');
+  }
+
+  // Serves is optional but must be a string if provided
+  if (data.serves !== undefined && data.serves !== null && typeof data.serves !== 'string') {
+    errors.push('Serves must be a string');
+  } else if (data.serves && data.serves.length > 100) {
+    errors.push('Serves must be 100 characters or less');
+  }
+
+  // Cook time is optional but must be a string if provided
+  if (data.cook_time !== undefined && data.cook_time !== null && typeof data.cook_time !== 'string') {
+    errors.push('Cook time must be a string');
+  } else if (data.cook_time && data.cook_time.length > 100) {
+    errors.push('Cook time must be 100 characters or less');
+  }
+
+  // Ingredients must be an array of strings
+  if (!Array.isArray(data.ingredients)) {
+    errors.push('Ingredients must be an array');
+  } else {
+    if (data.ingredients.length === 0) {
+      errors.push('At least one ingredient is required');
+    }
+    for (let i = 0; i < data.ingredients.length; i++) {
+      if (typeof data.ingredients[i] !== 'string') {
+        errors.push(`Ingredient at index ${i} must be a string`);
+        break;
+      }
+      if (data.ingredients[i].length > 500) {
+        errors.push(`Ingredient at index ${i} exceeds 500 character limit`);
+        break;
+      }
+    }
+  }
+
+  // Directions must be an array of strings
+  if (!Array.isArray(data.directions)) {
+    errors.push('Directions must be an array');
+  } else {
+    if (data.directions.length === 0) {
+      errors.push('At least one direction is required');
+    }
+    for (let i = 0; i < data.directions.length; i++) {
+      if (typeof data.directions[i] !== 'string') {
+        errors.push(`Direction at index ${i} must be a string`);
+        break;
+      }
+      if (data.directions[i].length > 2000) {
+        errors.push(`Direction at index ${i} exceeds 2000 character limit`);
+        break;
+      }
+    }
+  }
+
+  // Tags must be an array of strings (optional, can be empty)
+  if (data.tags !== undefined && data.tags !== null) {
+    if (!Array.isArray(data.tags)) {
+      errors.push('Tags must be an array');
+    } else {
+      for (let i = 0; i < data.tags.length; i++) {
+        if (typeof data.tags[i] !== 'string') {
+          errors.push(`Tag at index ${i} must be a string`);
+          break;
+        }
+        if (data.tags[i].length > 50) {
+          errors.push(`Tag at index ${i} exceeds 50 character limit`);
+          break;
+        }
+      }
+    }
+  }
+
+  // Image URL is optional but must be a valid URL if provided
+  if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
+    if (typeof data.image_url !== 'string') {
+      errors.push('Image URL must be a string');
+    } else if (data.image_url.length > 500) {
+      errors.push('Image URL must be 500 characters or less');
+    }
+  }
+
+  return errors;
+}
+
 export default {
   async fetch(request, env) {
+    const origin = request.headers.get('Origin');
+    
+    // Check if origin is allowed
+    const isAllowedOrigin = origin && ALLOWED_ORIGINS.includes(origin);
+    
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
     };
 
     if (request.method === 'OPTIONS') {
@@ -121,12 +229,22 @@ export default {
 
       if (path === '/api/recipes' && request.method === 'POST') {
         const data = await request.json();
+        
+        // Validate input
+        const validationErrors = validateRecipeData(data);
+        if (validationErrors.length > 0) {
+            return new Response(JSON.stringify({ error: 'Validation failed', details: validationErrors }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
         const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
 
         const result = await env.DB.prepare(
           'INSERT INTO recipes (title, serves, cook_time, ingredients, directions, tags, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
         )
-        .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []), image_url || null)
+        .bind(title.trim(), serves || null, cook_time || null, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(tags || []), image_url || null)
         .run();
 
         return new Response(JSON.stringify({ success: true, id: result.meta.last_row_id }), {
@@ -141,12 +259,31 @@ export default {
 
         if (request.method === 'PUT') {
            const data = await request.json();
+           
+           // Validate input
+           const validationErrors = validateRecipeData(data);
+           if (validationErrors.length > 0) {
+               return new Response(JSON.stringify({ error: 'Validation failed', details: validationErrors }), {
+                   status: 400,
+                   headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+               });
+           }
+
            const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
+
+           // Delete old image from R2 if image_url has changed
+           const { results: existingRecipe } = await env.DB.prepare('SELECT image_url FROM recipes WHERE id = ?').bind(id).all();
+           if (existingRecipe[0]?.image_url && existingRecipe[0].image_url !== image_url) {
+               const oldKeyMatch = existingRecipe[0].image_url.match(/\/api\/images\/(.+)$/);
+               if (oldKeyMatch) {
+                   await env.IMAGES_BUCKET.delete(oldKeyMatch[1]);
+               }
+           }
 
            await env.DB.prepare(
              'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ?, image_url = ? WHERE id = ?'
            )
-           .bind(title, serves, cook_time, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), image_url || null, id)
+           .bind(title.trim(), serves || null, cook_time || null, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), image_url || null, id)
            .run();
 
            return new Response(JSON.stringify({ success: true }), {

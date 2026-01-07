@@ -761,12 +761,15 @@
                                 body: this.selectedFile
                             });
 
-                            if (!uploadResponse.ok) throw new Error('Image upload failed');
+                            if (!uploadResponse.ok) {
+                                const errorData = await uploadResponse.json().catch(() => ({}));
+                                throw new Error(errorData.error || 'Image upload failed');
+                            }
                             const uploadResult = await uploadResponse.json();
                             imageUrl = uploadResult.url;
                         } catch (e) {
                             console.error('Image upload error:', e);
-                            alert('Failed to upload image. Recipe not saved.');
+                            alert(`Failed to upload image: ${e.message}`);
                             this.uploading = false;
                             return;
                         }
@@ -797,7 +800,13 @@
                             body: JSON.stringify(recipeData)
                         });
 
-                        if (!response.ok) throw new Error('Failed to save');
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            if (errorData.details) {
+                                throw new Error(errorData.details.join(', '));
+                            }
+                            throw new Error(errorData.error || 'Failed to save');
+                        }
 
                         // Refresh recipes
                         await this.fetchRecipes();
