@@ -1,7 +1,7 @@
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://prosek-recipes.pages.dev',
-  'https://recipes.prosek.family',
+  'https://recipes.robrary.com',
+  'https://family-recipes-backend.robrary.workers.dev',
   'http://localhost:3000',
   'http://localhost:8080',
   'http://127.0.0.1:3000',

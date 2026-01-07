@@ -87,7 +87,8 @@
 </head>
 <body class="bg-background text-gray-800 antialiased min-h-screen flex flex-col"
       x-data="cookbook()"
-      x-init="init()">
+      x-init="init()"
+      @keydown.escape.window="if (showFormModal) closeForm(); else if (selectedRecipe) selectedRecipe = null;">
 
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
@@ -169,6 +170,7 @@
                     <button
                         @click="toggleTag(tag)"
                         :class="selectedTags.includes(tag) ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                        :aria-pressed="selectedTags.includes(tag)"
                         class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition-colors border border-transparent"
                         x-text="tag"
                     ></button>
@@ -191,7 +193,12 @@
         <!-- Recipe Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <template x-for="(recipe, index) in filteredRecipes" :key="recipe.id || index">
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer group" @click="openRecipe(recipe)">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer group"
+                     @click="openRecipe(recipe)"
+                     @keydown.enter="openRecipe(recipe)"
+                     tabindex="0"
+                     role="button"
+                     :aria-label="'View recipe: ' + recipe.title">
                     <div class="p-6 flex flex-col h-full">
                         <div class="flex flex-wrap gap-1 mb-2">
                             <template x-for="tag in recipe.tags" :key="tag">
@@ -460,10 +467,17 @@
                     </div>
 
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:w-auto sm:text-sm">
-                            Save Recipe
+                        <button type="submit"
+                                :disabled="saving || uploading"
+                                :class="(saving || uploading) ? 'opacity-50 cursor-not-allowed' : ''"
+                                class="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:w-auto sm:text-sm">
+                            <svg x-show="saving || uploading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="saving ? 'Saving...' : (uploading ? 'Uploading...' : 'Save Recipe')"></span>
                         </button>
-                        <button type="button" @click="closeForm()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:w-auto sm:text-sm">
+                        <button type="button" @click="closeForm()" :disabled="saving || uploading" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:w-auto sm:text-sm">
                             Cancel
                         </button>
                     </div>
@@ -479,6 +493,44 @@
             </p>
         </div>
     </footer>
+
+    <!-- Toast Notification -->
+    <div x-show="toast.show"
+         x-transition:enter="transform ease-out duration-300 transition"
+         x-transition:enter-start="translate-y-2 opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed bottom-4 right-4 z-50 max-w-sm w-full shadow-lg rounded-lg pointer-events-auto"
+         :class="toast.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'"
+         x-cloak>
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <!-- Success Icon -->
+                    <svg x-show="toast.type === 'success'" class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <!-- Error Icon -->
+                    <svg x-show="toast.type === 'error'" class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3 w-0 flex-1">
+                    <p class="text-sm font-medium" :class="toast.type === 'success' ? 'text-green-800' : 'text-red-800'" x-text="toast.message"></p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button @click="toast.show = false" class="inline-flex rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                            :class="toast.type === 'success' ? 'text-green-500 hover:text-green-600 focus:ring-green-500' : 'text-red-500 hover:text-red-600 focus:ring-red-500'">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Update this URL to point to your Cloudflare Worker if hosted separately.
@@ -498,7 +550,13 @@
                 multiplier: 1,
                 tagInput: '',
                 uploading: false,
+                saving: false,
                 selectedFile: null,
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
                 formData: {
                     id: null,
                     title: '',
@@ -508,6 +566,15 @@
                     ingredientsText: '',
                     directionsText: '',
                     image_url: null
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 4000);
                 },
 
                 async init() {
@@ -747,11 +814,13 @@
                         this.addTag();
                     }
 
-                    this.uploading = true;
+                    this.saving = true;
+                    this.uploading = false;
                     let imageUrl = this.formData.image_url;
 
                     // If a new file is selected, upload it first
                     if (this.selectedFile) {
+                        this.uploading = true;
                         try {
                             const uploadResponse = await fetch(`${API_URL.replace('/api/recipes', '')}/api/upload-image`, {
                                 method: 'PUT',
@@ -769,10 +838,12 @@
                             imageUrl = uploadResult.url;
                         } catch (e) {
                             console.error('Image upload error:', e);
-                            alert(`Failed to upload image: ${e.message}`);
+                            this.showToast(`Failed to upload image: ${e.message}`, 'error');
+                            this.saving = false;
                             this.uploading = false;
                             return;
                         }
+                        this.uploading = false;
                     }
 
                     const recipeData = {
@@ -812,6 +883,9 @@
                         await this.fetchRecipes();
                         this.closeForm();
 
+                        // Show success toast
+                        this.showToast(this.formData.id ? 'Recipe updated successfully!' : 'Recipe added successfully!', 'success');
+
                         // If we were editing, update the selectedRecipe view if it's open
                         if (this.formData.id && this.selectedRecipe && this.selectedRecipe.id === this.formData.id) {
                             this.selectedRecipe = this.recipes.find(r => r.id === this.formData.id);
@@ -819,8 +893,9 @@
 
                     } catch (error) {
                         console.error('Error saving recipe:', error);
-                        alert('Failed to save recipe. Please try again.');
+                        this.showToast(`Failed to save recipe: ${error.message}`, 'error');
                     } finally {
+                        this.saving = false;
                         this.uploading = false;
                     }
                 }
