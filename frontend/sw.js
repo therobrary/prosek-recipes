@@ -1,12 +1,21 @@
-const CACHE_NAME = 'cari-recipes-v1';
-const STATIC_CACHE = 'cari-static-v1';
-const DYNAMIC_CACHE = 'cari-dynamic-v1';
+const CACHE_NAME = 'cari-recipes-v2';
+const STATIC_CACHE = 'cari-static-v2';
+const DYNAMIC_CACHE = 'cari-dynamic-v2';
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/js/config.js',
+  '/js/storage.js',
+  '/js/router.js',
+  '/js/validation.js',
+  '/js/ingredient-scaler.js',
+  '/js/share.js',
+  '/js/api.js',
+  '/js/sorter.js',
+  '/js/cookbook.js',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap'

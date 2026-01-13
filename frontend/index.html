@@ -298,7 +298,7 @@
 <body class="bg-background text-gray-800 antialiased min-h-screen flex flex-col"
       x-data="cookbook()"
       x-init="init()"
-      @keydown.escape.window="if (showFormModal) closeForm(); else if (selectedRecipe) selectedRecipe = null;">
+      @keydown.escape.window="if (showFormModal) closeForm(); else if (selectedRecipe) closeRecipe();">
 
     <!-- Hero Header Section -->
     <header class="relative bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
@@ -448,10 +448,46 @@
             </div>
         </div>
 
+        <!-- Offline Indicator -->
+        <div x-show="isOffline" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8" 
+             x-cloak>
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <span class="font-medium">You're offline.</span> Viewing cached recipes. Some features may be unavailable.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- Tag Filters - Pill Style -->
         <div x-show="!isLoading && !error && allTags.length > 0" class="mb-8">
-            <div class="flex items-center gap-2 mb-3">
+            <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <span class="text-sm font-medium text-gray-500">Filter by category:</span>
+                <!-- Sort Dropdown -->
+                <div class="flex items-center gap-2">
+                    <label for="sort-select" class="text-sm text-gray-500">Sort:</label>
+                    <select id="sort-select" 
+                            x-model="sortBy" 
+                            @change="setSortBy($event.target.value)"
+                            class="text-sm border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary py-1.5 pl-3 pr-8">
+                        <template x-for="option in sortOptions" :key="option.value">
+                            <option :value="option.value" x-text="option.label"></option>
+                        </template>
+                    </select>
+                </div>
             </div>
             <div class="flex flex-wrap gap-2">
                 <template x-for="tag in allTags" :key="tag">
@@ -504,7 +540,7 @@
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                         
                         <!-- Tags positioned on image -->
-                        <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-1.5rem)]">
+                        <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-4rem)]">
                             <template x-for="tag in recipe.tags.slice(0, 2)" :key="tag">
                                 <span class="tag-pill inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm shadow-sm"
                                       :class="getCategoryColor(tag)"
@@ -514,6 +550,16 @@
                                   class="tag-pill inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/80 backdrop-blur-sm text-gray-600 shadow-sm"
                                   x-text="'+' + (recipe.tags.length - 2)"></span>
                         </div>
+                        
+                        <!-- Favorite Button -->
+                        <button @click.stop="toggleFavorite(recipe.id)" 
+                                class="absolute top-3 right-3 bg-white/20 backdrop-blur-sm hover:bg-white/40 rounded-full p-2 transition-all"
+                                :class="isFavorite(recipe.id) ? 'text-red-500' : 'text-white'"
+                                :title="isFavorite(recipe.id) ? 'Remove from favorites' : 'Add to favorites'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="isFavorite(recipe.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
                         
                         <!-- Title overlay on image -->
                         <div class="absolute bottom-0 left-0 right-0 p-4">
@@ -617,7 +663,7 @@
                  x-transition:leave-start="opacity-100"
                  x-transition:leave-end="opacity-0"
                  class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-                 @click="selectedRecipe = null"
+                 @click="closeRecipe()"
                  aria-hidden="true"></div>
 
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
@@ -643,6 +689,19 @@
                     
                     <!-- Close & Action buttons -->
                     <div class="absolute top-4 right-4 flex gap-2 print:hidden">
+                        <button @click="shareRecipe(selectedRecipe)" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Share Recipe">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                        <button @click="toggleFavorite(selectedRecipe.id)" 
+                                class="bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-2.5 transition-colors" 
+                                :class="isFavorite(selectedRecipe?.id) ? 'text-red-400' : 'text-white'"
+                                :title="isFavorite(selectedRecipe?.id) ? 'Remove from favorites' : 'Add to favorites'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="isFavorite(selectedRecipe?.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
                         <button @click="window.print()" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Print Recipe">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -653,7 +712,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
-                        <button @click="selectedRecipe = null" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Close">
+                        <button @click="closeRecipe()" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Close">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -769,7 +828,7 @@
                         <p class="text-xs text-gray-400">Click ingredients to cross them off</p>
                         <button type="button" 
                                 class="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors" 
-                                @click="selectedRecipe = null">
+                                @click="closeRecipe()">
                             Close Recipe
                         </button>
                     </div>
@@ -791,8 +850,13 @@
 
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Title</label>
-                                <input type="text" x-model="formData.title" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
+                                <input type="text" x-model="formData.title" 
+                                       @input="formErrors.title = null"
+                                       :class="formErrors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
+                                       class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                <p x-show="formErrors.title" x-text="formErrors.title" class="mt-1 text-sm text-red-600"></p>
+                                <p class="mt-1 text-xs text-gray-400"><span x-text="formData.title.length"></span>/200</p>
                             </div>
 
                             <div>
@@ -813,7 +877,8 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Tags</label>
-                                <div class="mt-1 border border-gray-300 rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                <div class="mt-1 border rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary"
+                                     :class="formErrors.tags ? 'border-red-500' : 'border-gray-300'">
                                     <div class="flex flex-wrap gap-2 mb-2" x-show="formData.tags.length > 0">
                                         <template x-for="(tag, index) in formData.tags" :key="index">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary text-white">
@@ -832,33 +897,51 @@
                                         @keydown.enter.prevent="addTag()"
                                         @keydown.comma.prevent="addTag()"
                                         @keydown.backspace="handleBackspace()"
+                                        @input="formErrors.tags = null"
                                         placeholder="Type a tag and press Enter..."
                                         class="block w-full border-none focus:ring-0 p-0 text-sm"
                                     >
                                 </div>
+                                <p x-show="formErrors.tags" x-text="formErrors.tags" class="mt-1 text-sm text-red-600"></p>
                                 <p class="text-xs text-gray-500 mt-1">Press Enter or Comma to add a tag.</p>
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Serves (e.g. 4-6)</label>
-                                    <input type="text" x-model="formData.serves" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                    <input type="text" x-model="formData.serves" 
+                                           @input="formErrors.serves = null"
+                                           :class="formErrors.serves ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
+                                           class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                    <p x-show="formErrors.serves" x-text="formErrors.serves" class="mt-1 text-sm text-red-600"></p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Cook Time (e.g. 45 mins)</label>
-                                    <input type="text" x-model="formData.cook_time" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2">
+                                    <input type="text" x-model="formData.cook_time" 
+                                           @input="formErrors.cook_time = null"
+                                           :class="formErrors.cook_time ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
+                                           class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                    <p x-show="formErrors.cook_time" x-text="formErrors.cook_time" class="mt-1 text-sm text-red-600"></p>
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Ingredients (One per line)</label>
+                                <label class="block text-sm font-medium text-gray-700">Ingredients (One per line) <span class="text-red-500">*</span></label>
                                 <div class="text-xs text-gray-500 mb-1">Tip: Use __SECTION__ prefix for headers</div>
-                                <textarea x-model="formData.ingredientsText" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2 font-mono text-sm"></textarea>
+                                <textarea x-model="formData.ingredientsText" rows="6" 
+                                          @input="formErrors.ingredients = null"
+                                          :class="formErrors.ingredients ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
+                                          class="mt-1 block w-full rounded-md shadow-sm border p-2 font-mono text-sm"></textarea>
+                                <p x-show="formErrors.ingredients" x-text="formErrors.ingredients" class="mt-1 text-sm text-red-600"></p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Directions (One step per line)</label>
-                                <textarea x-model="formData.directionsText" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary border p-2 font-mono text-sm"></textarea>
+                                <label class="block text-sm font-medium text-gray-700">Directions (One step per line) <span class="text-red-500">*</span></label>
+                                <textarea x-model="formData.directionsText" rows="6" 
+                                          @input="formErrors.directions = null"
+                                          :class="formErrors.directions ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
+                                          class="mt-1 block w-full rounded-md shadow-sm border p-2 font-mono text-sm"></textarea>
+                                <p x-show="formErrors.directions" x-text="formErrors.directions" class="mt-1 text-sm text-red-600"></p>
                             </div>
                         </div>
                     </div>
@@ -963,8 +1046,24 @@
     </div>
 
     <script>
-        // Update this URL to point to your Cloudflare Worker if hosted separately.
-        // If served from the same domain (e.g. via Cloudflare Pages functions or similar routing), relative path works.
+        /**
+         * Cookbook Alpine.js Component
+         * 
+         * Note: A modular version of this code is available in the /js directory:
+         * - js/config.js      - Configuration constants
+         * - js/storage.js     - LocalStorage utilities
+         * - js/router.js      - URL routing with History API
+         * - js/validation.js  - Form validation
+         * - js/ingredient-scaler.js - Ingredient scaling logic
+         * - js/share.js       - Web Share API utilities
+         * - js/api.js         - API service layer
+         * - js/sorter.js      - Recipe sorting utilities
+         * - js/cookbook.js    - Main component (ES module)
+         * 
+         * To use the modular version, add type="module" and import from js/cookbook.js
+         */
+        
+        // API Configuration
         const API_URL = 'https://family-recipes-backend.robrary.workers.dev/api/recipes';
 
         function cookbook() {
@@ -983,11 +1082,22 @@
                 saving: false,
                 selectedFile: null,
                 darkMode: document.documentElement.classList.contains('dark'),
+                isOffline: !navigator.onLine,
+                favorites: JSON.parse(localStorage.getItem('recipe-favorites') || '[]'),
+                sortBy: localStorage.getItem('recipe-sort') || 'title',
+                sortOptions: [
+                    { value: 'title', label: 'A-Z' },
+                    { value: 'title-desc', label: 'Z-A' },
+                    { value: 'newest', label: 'Newest First' },
+                    { value: 'oldest', label: 'Oldest First' },
+                    { value: 'favorites', label: 'Favorites First' }
+                ],
                 toast: {
                     show: false,
                     message: '',
                     type: 'success'
                 },
+                formErrors: {},
                 formData: {
                     id: null,
                     title: '',
@@ -1023,7 +1133,135 @@
                 },
 
                 async init() {
+                    // Set up online/offline listeners
+                    window.addEventListener('online', () => { this.isOffline = false; });
+                    window.addEventListener('offline', () => { this.isOffline = true; });
+
+                    // Handle URL routing
+                    window.addEventListener('popstate', () => this.handleRoute());
+
                     await this.fetchRecipes();
+
+                    // Check initial route after recipes are loaded
+                    this.handleRoute();
+                },
+
+                // URL Routing
+                handleRoute() {
+                    const hash = window.location.hash;
+                    if (hash.startsWith('#/recipe/')) {
+                        const recipeId = parseInt(hash.replace('#/recipe/', ''), 10);
+                        const recipe = this.recipes.find(r => r.id === recipeId);
+                        if (recipe) {
+                            this.selectedRecipe = recipe;
+                            this.multiplier = 1;
+                        }
+                    } else {
+                        this.selectedRecipe = null;
+                    }
+                },
+
+                updateUrl(recipe = null) {
+                    if (recipe) {
+                        const newUrl = `#/recipe/${recipe.id}`;
+                        if (window.location.hash !== newUrl) {
+                            history.pushState({ recipeId: recipe.id }, '', newUrl);
+                        }
+                    } else {
+                        if (window.location.hash !== '' && window.location.hash !== '#') {
+                            history.pushState({}, '', window.location.pathname);
+                        }
+                    }
+                },
+
+                // Favorites
+                toggleFavorite(recipeId) {
+                    const index = this.favorites.indexOf(recipeId);
+                    if (index > -1) {
+                        this.favorites.splice(index, 1);
+                    } else {
+                        this.favorites.push(recipeId);
+                    }
+                    localStorage.setItem('recipe-favorites', JSON.stringify(this.favorites));
+                },
+
+                isFavorite(recipeId) {
+                    return this.favorites.includes(recipeId);
+                },
+
+                // Sorting
+                setSortBy(value) {
+                    this.sortBy = value;
+                    localStorage.setItem('recipe-sort', value);
+                },
+
+                // Share
+                async shareRecipe(recipe) {
+                    const shareData = {
+                        title: recipe.title,
+                        text: `Check out this recipe: ${recipe.title}`,
+                        url: window.location.origin + window.location.pathname + `#/recipe/${recipe.id}`
+                    };
+
+                    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                        try {
+                            await navigator.share(shareData);
+                        } catch (err) {
+                            if (err.name !== 'AbortError') {
+                                this.copyRecipeLink(recipe);
+                            }
+                        }
+                    } else {
+                        this.copyRecipeLink(recipe);
+                    }
+                },
+
+                copyRecipeLink(recipe) {
+                    const url = window.location.origin + window.location.pathname + `#/recipe/${recipe.id}`;
+                    navigator.clipboard.writeText(url).then(() => {
+                        this.showToast('Link copied to clipboard!', 'success');
+                    }).catch(() => {
+                        this.showToast('Could not copy link', 'error');
+                    });
+                },
+
+                // Form Validation
+                validateForm() {
+                    this.formErrors = {};
+                    
+                    if (!this.formData.title.trim()) {
+                        this.formErrors.title = 'Title is required';
+                    } else if (this.formData.title.length > 200) {
+                        this.formErrors.title = 'Title must be 200 characters or less';
+                    }
+
+                    if (this.formData.serves && this.formData.serves.length > 100) {
+                        this.formErrors.serves = 'Serves must be 100 characters or less';
+                    }
+
+                    if (this.formData.cook_time && this.formData.cook_time.length > 100) {
+                        this.formErrors.cook_time = 'Cook time must be 100 characters or less';
+                    }
+
+                    const ingredients = this.formData.ingredientsText.split('\n').filter(line => line.trim() !== '');
+                    if (ingredients.length === 0) {
+                        this.formErrors.ingredients = 'At least one ingredient is required';
+                    } else if (ingredients.some(i => i.length > 500)) {
+                        this.formErrors.ingredients = 'Each ingredient must be 500 characters or less';
+                    }
+
+                    const directions = this.formData.directionsText.split('\n').filter(line => line.trim() !== '');
+                    if (directions.length === 0) {
+                        this.formErrors.directions = 'At least one direction is required';
+                    } else if (directions.some(d => d.length > 2000)) {
+                        this.formErrors.directions = 'Each direction must be 2000 characters or less';
+                    }
+
+                    if (this.formData.tags.some(t => t.length > 50)) {
+                        this.formErrors.tags = 'Each tag must be 50 characters or less';
+                    }
+
+                    return Object.keys(this.formErrors).length === 0;
                 },
 
                 async fetchRecipes() {
@@ -1059,7 +1297,7 @@
 
                     const query = this.searchQuery.toLowerCase();
 
-                    return this.recipes.filter(recipe => {
+                    let results = this.recipes.filter(recipe => {
                         const matchesSearch = recipe.title.toLowerCase().includes(query) ||
                                               recipe.ingredients.some(i => i.toLowerCase().includes(query));
 
@@ -1069,6 +1307,32 @@
 
                         return matchesSearch && matchesTags;
                     });
+
+                    // Apply sorting
+                    switch (this.sortBy) {
+                        case 'title':
+                            results.sort((a, b) => a.title.localeCompare(b.title));
+                            break;
+                        case 'title-desc':
+                            results.sort((a, b) => b.title.localeCompare(a.title));
+                            break;
+                        case 'newest':
+                            results.sort((a, b) => (b.id || 0) - (a.id || 0));
+                            break;
+                        case 'oldest':
+                            results.sort((a, b) => (a.id || 0) - (b.id || 0));
+                            break;
+                        case 'favorites':
+                            results.sort((a, b) => {
+                                const aFav = this.favorites.includes(a.id) ? 1 : 0;
+                                const bFav = this.favorites.includes(b.id) ? 1 : 0;
+                                if (bFav !== aFav) return bFav - aFav;
+                                return a.title.localeCompare(b.title);
+                            });
+                            break;
+                    }
+
+                    return results;
                 },
 
                 toggleTag(tag) {
@@ -1096,6 +1360,12 @@
                 openRecipe(recipe) {
                     this.selectedRecipe = recipe;
                     this.multiplier = 1;
+                    this.updateUrl(recipe);
+                },
+
+                closeRecipe() {
+                    this.selectedRecipe = null;
+                    this.updateUrl(null);
                 },
 
                 resetFilters() {
@@ -1216,6 +1486,7 @@
                     this.showFormModal = false;
                     this.tagInput = '';
                     this.selectedFile = null;
+                    this.formErrors = {};
                     this.formData = { id: null, title: '', tags: [], serves: '', cook_time: '', ingredientsText: '', directionsText: '', image_url: null };
                 },
 
@@ -1257,6 +1528,12 @@
                     // Ensure current tag input is added if valid
                     if (this.tagInput.trim()) {
                         this.addTag();
+                    }
+
+                    // Validate form
+                    if (!this.validateForm()) {
+                        this.showToast('Please fix the errors in the form', 'error');
+                        return;
                     }
 
                     this.saving = true;
