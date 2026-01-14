@@ -19,8 +19,11 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'backend'
+          # Wrangler v3 doesn't support `secret:bulk`; use `secret put`.
           command: |
-            echo "{\"OPENAI_BASE_URL\":\"${{ secrets.OPENAI_BASE_URL }}\",\"OPENAI_API_KEY\":\"${{ secrets.OPENAI_API_KEY }}\",\"OPENAI_MODEL\":\"${{ secrets.OPENAI_MODEL }}\"}" | wrangler secret:bulk
+            printf "%s" "${{ secrets.OPENAI_BASE_URL }}" | wrangler secret put OPENAI_BASE_URL
+            printf "%s" "${{ secrets.OPENAI_API_KEY }}" | wrangler secret put OPENAI_API_KEY
+            printf "%s" "${{ secrets.OPENAI_MODEL }}" | wrangler secret put OPENAI_MODEL
             wrangler deploy
 
       - name: Deploy Frontend (Pages)
