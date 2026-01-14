@@ -1,6 +1,6 @@
 # Deployment Guide for Cari's Family Recipes
 
-This project consists of a Cloudflare Worker backend (using D1 database) and a static HTML frontend.
+This guide covers the setup and deployment of the application to the Cloudflare platform. The system is composed of a Worker (Backend), a D1 Database, an R2 Storage Bucket, and a Pages site (Frontend).
 
 ## Prerequisites
 
@@ -15,65 +15,99 @@ This project consists of a Cloudflare Worker backend (using D1 database) and a s
     wrangler login
     ```
 
-## Backend Deployment
+## 1. Backend Infrastructure Setup
+
+### Create Resources
 
 1.  **Create the D1 Database**:
-    Run the following command to create a new D1 database for the project:
     ```bash
     wrangler d1 create family-recipes-db
     ```
-    *Copy the `database_id` from the output of this command.*
+    *Copy the `database_id` from the output.*
 
-2.  **Configure `wrangler.toml`**:
-    Open `backend/wrangler.toml` and replace `YOUR_DATABASE_ID` with the ID you copied in the previous step.
+2.  **Create the R2 Bucket**:
+    This bucket will store recipe images.
+    ```bash
+    wrangler r2 bucket create family-recipes-images
+    ```
 
-3.  **Apply Schema**:
-    Create the database tables by executing the schema file:
+### Configure Backend
+
+1.  **Update `wrangler.toml`**:
+    Open `backend/wrangler.toml`.
+    *   Replace the `database_id` under `[[d1_databases]]` with the ID you copied.
+    *   Ensure the `bucket_name` under `[[r2_buckets]]` matches `family-recipes-images`.
+
+2.  **Initialize Database**:
+    Apply the schema to create the necessary tables.
     ```bash
     wrangler d1 execute family-recipes-db --file=backend/schema.sql --remote
     ```
-
-4.  **Seed Data (Optional)**:
-    Populate the database with initial recipes:
+    *(Optional) Seed with initial data:*
     ```bash
     wrangler d1 execute family-recipes-db --file=backend/seed.sql --remote
     ```
 
-5.  **Deploy the Worker**:
-    Navigate to the backend directory and deploy:
-    ```bash
-    cd backend
-    wrangler deploy
-    ```
-    *Note the "Worker URL" displayed in the output (e.g., `https://family-recipes-backend.<your-subdomain>.workers.dev`).*
+### Deploy Backend Worker
 
-## Frontend Deployment
+Navigate to the backend directory and deploy:
+```bash
+cd backend
+wrangler deploy
+```
+*Note the "Worker URL" displayed in the output (e.g., `https://family-recipes-backend.<your-subdomain>.workers.dev`). You will need this for the frontend.*
+
+## 2. Frontend Deployment
+
+### Configuration
 
 1.  **Update API URL**:
     Open `frontend/index.html` in a text editor.
     Find the line:
     ```javascript
-    const API_URL = '/api/recipes';
+    const API_URL = 'https://...';
     ```
-    Replace `'/api/recipes'` with your full Worker URL from the backend deployment step, appending `/api/recipes`:
+    Replace the URL with your deployed Worker URL (from the previous step), ensuring you append `/api/recipes`.
+    
+    *Example:*
     ```javascript
-    const API_URL = 'https://family-recipes-backend.<your-subdomain>.workers.dev/api/recipes';
+    const API_URL = 'https://family-recipes-backend.my-subdomain.workers.dev/api/recipes';
     ```
 
-2.  **Deploy to Cloudflare Pages**:
-    You can deploy the `frontend` directory directly to Cloudflare Pages.
+### Deploy to Cloudflare Pages
 
-    **Option A: Using Wrangler (Recommended)**
-    From the root of the project (ensure you are in `prosek-recipes/`, not `backend/`):
+You can deploy the `frontend` folder directly to Cloudflare Pages.
+
+**Using Wrangler (Recommended)**
+From the project root (not `backend/`):
+```bash
+wrangler pages deploy frontend --project-name=family-recipes-frontend
+```
+Follow the prompts to create the project if it's your first time.
+
+## 3. Automated Deployment (CI/CD)
+
+This repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys changes when you push to the `main` branch.
+
+### Setup Secrets in GitHub
+
+To enable this, go to your GitHub repository **Settings > Secrets and variables > Actions** and add the following secrets:
+
+*   `CLOUDFLARE_API_TOKEN`: Create this in your Cloudflare Dashboard (User Profile > API Tokens) with the "Edit Cloudflare Workers" template.
+*   `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID (found on the right sidebar of the Cloudflare Dashboard overview).
+
+Once configured, any commit to `main` will trigger a deployment of both the backend and frontend.
+
+## 4. Local Development
+
+To run the project locally:
+
+1.  **Backend**:
     ```bash
-    wrangler pages deploy frontend --project-name=family-recipes-frontend
+    cd backend
+    wrangler dev --local --persist
     ```
-    Follow the prompts to create the project.
+    This starts a local instance of the Worker with a local D1 database and R2 bucket simulation.
 
-    **Option B: Cloudflare Dashboard**
-    1.  Go to the Cloudflare Dashboard > Pages.
-    2.  Click "Create a project" > "Direct Upload".
-    3.  Upload the `frontend` folder.
-
-3.  **Access the App**:
-    Visit the URL provided by Cloudflare Pages after deployment!
+2.  **Frontend**:
+    You can use the python script to build a distribution version pointing to your local API, or simply edit `index.html` to point to `http://localhost:8787/api/recipes`.
