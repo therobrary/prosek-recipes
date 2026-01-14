@@ -50,6 +50,24 @@ This guide covers the setup and deployment of the application to the Cloudflare 
 
 ### Deploy Backend Worker
 
+#### Configure recipe URL import (optional)
+
+The backend supports importing recipes by URL (JSON-LD first, then optional LLM fallback).
+
+If you want the LLM fallback enabled, set these Worker secrets:
+
+- `OPENAI_BASE_URL`: Full OpenAI-compatible chat-completions endpoint URL (e.g. `https://your-host.example/v1/chat/completions`)
+- `OPENAI_API_KEY`: API key for that endpoint
+- `OPENAI_MODEL`: Model name (e.g. `gpt-4o-mini`)
+
+Set Worker secrets via Wrangler:
+```bash
+cd backend
+wrangler secret put OPENAI_BASE_URL
+wrangler secret put OPENAI_API_KEY
+wrangler secret put OPENAI_MODEL
+```
+
 Navigate to the backend directory and deploy:
 ```bash
 cd backend
@@ -97,6 +115,14 @@ To enable this, go to your GitHub repository **Settings > Secrets and variables 
 *   `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID (found on the right sidebar of the Cloudflare Dashboard overview).
 
 Once configured, any commit to `main` will trigger a deployment of both the backend and frontend.
+
+If you want URL import LLM fallback enabled via CI/CD, also add these secrets to GitHub Actions:
+
+- `OPENAI_BASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+
+Then update your workflow (`.github/workflows/deploy.yml`) to pass them as Wrangler secrets (or run `wrangler secret put ...` in the workflow).
 
 ## 4. Local Development
 

@@ -849,6 +849,26 @@
                         <h3 class="text-2xl font-bold text-gray-900 serif mb-4" x-text="formData.id ? 'Edit Recipe' : 'Add New Recipe'"></h3>
 
                         <div class="space-y-4">
+                            <div x-show="!formData.id" class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                                <label class="block text-sm font-semibold text-emerald-900 mb-2">Import from recipe URL</label>
+                                <div class="flex gap-2">
+                                    <input type="url"
+                                           x-model="importUrl"
+                                           @input="importError = null"
+                                           placeholder="https://example.com/recipe..."
+                                           class="flex-1 block w-full rounded-md shadow-sm border border-emerald-200 p-2 focus:ring-primary focus:border-primary">
+                                    <button type="button"
+                                            @click="importFromUrl()"
+                                            :disabled="importing"
+                                            :class="importing ? 'opacity-50 cursor-not-allowed' : ''"
+                                            class="px-4 py-2 rounded-md bg-primary text-white font-medium hover:bg-primary-dark shadow-sm">
+                                        <span x-text="importing ? 'Importing...' : 'Import'"></span>
+                                    </button>
+                                </div>
+                                <p x-show="importError" x-text="importError" class="mt-2 text-sm text-red-600"></p>
+                                <p class="mt-2 text-xs text-emerald-700">This will pull the recipe and store its image in R2.</p>
+                            </div>
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
                                 <input type="text" x-model="formData.title" 

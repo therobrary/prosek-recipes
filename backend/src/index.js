@@ -8,6 +8,310 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:8080',
 ];
 
+const DEFAULT_FETCH_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (compatible; FamilyRecipesBot/1.0; +https://recipes.robrary.com)',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+const MAX_IMPORT_HTML_BYTES = 2_000_000;
+const MAX_IMPORT_IMAGE_BYTES = 10_000_000;
+
+function getString(value) {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value) && value.length > 0) return getString(value[0]);
+  if (typeof value === 'number') return String(value);
+  return null;
+}
+
+function isProbablyBlockedHost(hostname) {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.localhost')) return true;
+  if (host === '127.0.0.1' || host === '::1') return true;
+
+  // Block literal private IPv4 ranges. (DNS-based checks are limited in Workers.)
+  if (/^10\./.test(host)) return true;
+  if (/^192\.168\./.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+  if (/^169\.254\./.test(host)) return true;
+
+  return false;
+}
+
+function extractJsonLdScripts(html) {
+  const scripts = [];
+  const regex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = regex.exec(html))) {
+    const content = match[1]?.trim();
+    if (content) scripts.push(content);
+  }
+  return scripts;
+}
+
+function asArray(value) {
+  if (value === null || value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function normalizeType(typeValue) {
+  if (typeof typeValue === 'string') return [typeValue];
+  if (Array.isArray(typeValue)) return typeValue.filter(t => typeof t === 'string');
+  return [];
+}
+
+function findRecipeInJsonLd(jsonLdObj) {
+  const candidates = [];
+
+  const visit = obj => {
+    if (!obj || typeof obj !== 'object') return;
+
+    const types = normalizeType(obj['@type']);
+    if (types.includes('Recipe')) {
+      candidates.push(obj);
+    }
+
+    if (Array.isArray(obj['@graph'])) {
+      for (const item of obj['@graph']) visit(item);
+    }
+  };
+
+  if (Array.isArray(jsonLdObj)) {
+    for (const item of jsonLdObj) visit(item);
+  } else {
+    visit(jsonLdObj);
+  }
+
+  // Sometimes pages nest a Recipe inside an array without @graph.
+  if (candidates.length === 0 && jsonLdObj && typeof jsonLdObj === 'object') {
+    for (const value of Object.values(jsonLdObj)) {
+      if (Array.isArray(value)) {
+        for (const item of value) visit(item);
+      }
+    }
+  }
+
+  return candidates[0] || null;
+}
+
+function normalizeInstructions(instructions) {
+  if (!instructions) return [];
+
+  if (typeof instructions === 'string') {
+    return instructions
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  const out = [];
+
+  for (const item of asArray(instructions)) {
+    if (!item) continue;
+
+    if (typeof item === 'string') {
+      const text = item.trim();
+      if (text) out.push(text);
+      continue;
+    }
+
+    if (typeof item === 'object') {
+      const types = normalizeType(item['@type']);
+
+      if (types.includes('HowToSection')) {
+        const name = getString(item.name);
+        if (name) out.push(`__SECTION__${name}`);
+
+        const steps = normalizeInstructions(item.itemListElement || item.steps || item.elements);
+        for (const step of steps) out.push(step);
+        continue;
+      }
+
+      const text = getString(item.text) || getString(item.name);
+      if (text) out.push(text.trim());
+
+      const nested = item.itemListElement || item.steps || item.elements;
+      if (nested) {
+        for (const step of normalizeInstructions(nested)) out.push(step);
+      }
+    }
+  }
+
+  return out.filter(Boolean);
+}
+
+function mapJsonLdRecipeToModel(recipe, fallbackTitle) {
+  const title = (getString(recipe.name) || fallbackTitle || '').trim();
+
+  const ingredients = asArray(recipe.recipeIngredient)
+    .map(i => (typeof i === 'string' ? i.trim() : ''))
+    .filter(Boolean);
+
+  const directions = normalizeInstructions(recipe.recipeInstructions);
+
+  const serves = getString(recipe.recipeYield);
+  const cookTime = getString(recipe.totalTime) || getString(recipe.cookTime) || getString(recipe.prepTime);
+
+  const imageUrl =
+    getString(recipe.image) ||
+    (recipe.image && typeof recipe.image === 'object' ? getString(recipe.image.url) : null);
+
+  return {
+    title,
+    serves: serves || null,
+    cook_time: cookTime || null,
+    ingredients,
+    directions,
+    tags: [],
+    image_url: imageUrl || null,
+  };
+}
+
+async function fetchTextWithLimit(targetUrl) {
+  const response = await fetch(targetUrl, { headers: DEFAULT_FETCH_HEADERS, redirect: 'follow' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch URL (status ${response.status})`);
+  }
+
+  const contentLength = response.headers.get('Content-Length');
+  if (contentLength && Number(contentLength) > MAX_IMPORT_HTML_BYTES) {
+    throw new Error('Page too large to import');
+  }
+
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength > MAX_IMPORT_HTML_BYTES) {
+    throw new Error('Page too large to import');
+  }
+
+  const contentType = response.headers.get('Content-Type') || '';
+  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml')) {
+    throw new Error('URL did not return an HTML page');
+  }
+
+  return new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+}
+
+function stripHtmlToText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractTitleFromHtml(html) {
+  const match = html.match(/<title>([\s\S]*?)<\/title>/i);
+  if (!match) return null;
+  return match[1].replace(/\s+/g, ' ').trim();
+}
+
+async function importImageToR2(imageUrl, requestUrl, env) {
+  if (!imageUrl) return null;
+
+  let parsed;
+  try {
+    parsed = new URL(imageUrl, requestUrl);
+  } catch {
+    return null;
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+  if (isProbablyBlockedHost(parsed.hostname)) return null;
+
+  const response = await fetch(parsed.toString(), { headers: DEFAULT_FETCH_HEADERS, redirect: 'follow' });
+  if (!response.ok) return null;
+
+  const contentType = response.headers.get('Content-Type') || '';
+  if (!contentType.startsWith('image/')) return null;
+
+  const contentLength = response.headers.get('Content-Length');
+  if (contentLength && Number(contentLength) > MAX_IMPORT_IMAGE_BYTES) return null;
+
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength > MAX_IMPORT_IMAGE_BYTES) return null;
+
+  // Derive extension from known mime types.
+  const mimeToExt = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/avif': 'avif',
+  };
+  const ext = mimeToExt[contentType.split(';')[0].trim()] || 'bin';
+
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).slice(2, 10);
+  const key = `imported/${timestamp}-${random}.${ext}`;
+
+  await env.IMAGES_BUCKET.put(key, buffer, {
+    httpMetadata: { contentType: contentType.split(';')[0].trim() },
+  });
+
+  const origin = new URL(requestUrl).origin;
+  return `${origin}/api/images/${key}`;
+}
+
+async function callOpenAiCompatibleChat({ endpoint, apiKey, model, messages }) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, messages, temperature: 0.2 }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`LLM request failed (status ${response.status}) ${errText}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content || typeof content !== 'string') {
+    throw new Error('LLM returned no content');
+  }
+
+  return content;
+}
+
+function parsePossibleJsonFromText(text) {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+
+  // Fallback: attempt to extract the first JSON object block.
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const substring = trimmed.slice(firstBrace, lastBrace + 1);
+    return JSON.parse(substring);
+  }
+
+  throw new Error('Failed to parse JSON from LLM response');
+}
+
+function normalizeImportedRecipeShape(obj) {
+  return {
+    title: typeof obj.title === 'string' ? obj.title : '',
+    serves: typeof obj.serves === 'string' ? obj.serves : null,
+    cook_time: typeof obj.cook_time === 'string' ? obj.cook_time : null,
+    ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(i => typeof i === 'string') : [],
+    directions: Array.isArray(obj.directions) ? obj.directions.filter(d => typeof d === 'string') : [],
+    tags: [],
+    image_url: typeof obj.image_url === 'string' ? obj.image_url : null,
+  };
+}
+
 // Input validation helper
 function validateRecipeData(data) {
   const errors = [];
@@ -224,6 +528,121 @@ export default {
             'Content-Type': 'application/json',
             'Cache-Control': 'public, max-age=60' // Cache for 60 seconds
           },
+        });
+      }
+
+      if (path === '/api/recipes/import' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const targetUrl = body?.url;
+        if (!targetUrl || typeof targetUrl !== 'string') {
+          return new Response(JSON.stringify({ success: false, error: 'Missing url' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        let parsedTargetUrl;
+        try {
+          parsedTargetUrl = new URL(targetUrl);
+        } catch {
+          return new Response(JSON.stringify({ success: false, error: 'Invalid url' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (!['http:', 'https:'].includes(parsedTargetUrl.protocol)) {
+          return new Response(JSON.stringify({ success: false, error: 'Only http(s) URLs are supported' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (isProbablyBlockedHost(parsedTargetUrl.hostname)) {
+          return new Response(JSON.stringify({ success: false, error: 'This host is not allowed' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const html = await fetchTextWithLimit(parsedTargetUrl.toString());
+        const htmlTitle = extractTitleFromHtml(html);
+
+        let imported = null;
+        let source = null;
+
+        // Primary: JSON-LD schema.org Recipe.
+        const scripts = extractJsonLdScripts(html);
+        for (const scriptText of scripts) {
+          try {
+            const obj = JSON.parse(scriptText);
+            const recipeObj = findRecipeInJsonLd(obj);
+            if (!recipeObj) continue;
+
+            const mapped = mapJsonLdRecipeToModel(recipeObj, htmlTitle);
+            if (mapped.ingredients.length > 0 && mapped.directions.length > 0) {
+              imported = mapped;
+              source = 'jsonld';
+              break;
+            }
+          } catch {
+            // ignore JSON parse errors
+          }
+        }
+
+        // Fallback: LLM parse of page text.
+        if (!imported) {
+          const endpoint = env.OPENAI_BASE_URL;
+          const apiKey = env.OPENAI_API_KEY;
+          const model = env.OPENAI_MODEL;
+
+          if (!endpoint || !apiKey || !model) {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: 'Recipe not found in page metadata, and LLM fallback is not configured',
+              }),
+              { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          const pageText = stripHtmlToText(html);
+          const content = pageText.slice(0, 15_000);
+
+          const messages = [
+            {
+              role: 'system',
+              content:
+                'Extract a cooking recipe from the provided webpage content. Return ONLY JSON with keys: title (string), serves (string|null), cook_time (string|null), ingredients (string[]), directions (string[]), image_url (string|null). Do not include markdown or commentary.',
+            },
+            {
+              role: 'user',
+              content: JSON.stringify({ url: parsedTargetUrl.toString(), title: htmlTitle, content }),
+            },
+          ];
+
+          const llmText = await callOpenAiCompatibleChat({ endpoint, apiKey, model, messages });
+          const llmJson = parsePossibleJsonFromText(llmText);
+          imported = normalizeImportedRecipeShape(llmJson);
+          source = 'llm';
+        }
+
+        // Import image into R2 (if any)
+        if (imported?.image_url) {
+          const storedImageUrl = await importImageToR2(imported.image_url, request.url, env);
+          imported.image_url = storedImageUrl;
+        }
+
+        const validationErrors = validateRecipeData(imported);
+        if (validationErrors.length > 0) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Validation failed', details: validationErrors, source }),
+            { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(JSON.stringify({ success: true, recipe: imported, source }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 

@@ -38,6 +38,9 @@ export function cookbook() {
             type: 'success'
         },
         formErrors: {},
+        importUrl: '',
+        importing: false,
+        importError: null,
         formData: {
             id: null,
             title: '',
@@ -236,6 +239,9 @@ export function cookbook() {
             this.tagInput = '';
             this.selectedFile = null;
             this.formErrors = {};
+            this.importUrl = '';
+            this.importError = null;
+            this.importing = false;
             if (recipe) {
                 this.formData = {
                     id: recipe.id,
@@ -267,6 +273,9 @@ export function cookbook() {
             this.tagInput = '';
             this.selectedFile = null;
             this.formErrors = {};
+            this.importUrl = '';
+            this.importError = null;
+            this.importing = false;
             this.formData = {
                 id: null,
                 title: '',
@@ -307,6 +316,40 @@ export function cookbook() {
         handleBackspace() {
             if (this.tagInput === '' && this.formData.tags.length > 0) {
                 this.formData.tags.pop();
+            }
+        },
+
+        async importFromUrl() {
+            const url = (this.importUrl || '').trim();
+            if (!url) {
+                this.importError = 'Please enter a URL';
+                return;
+            }
+
+            this.importing = true;
+            this.importError = null;
+            try {
+                const result = await api.importRecipeFromUrl(url);
+                const recipe = result.recipe;
+
+                this.selectedFile = null;
+                this.formData = {
+                    ...this.formData,
+                    title: recipe.title || '',
+                    serves: recipe.serves || '',
+                    cook_time: recipe.cook_time || '',
+                    ingredientsText: Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : '',
+                    directionsText: Array.isArray(recipe.directions) ? recipe.directions.join('\n') : '',
+                    image_url: recipe.image_url || null
+                };
+
+                this.showToast('Recipe imported. Review and edit before saving.', 'success');
+            } catch (error) {
+                console.error('Import error:', error);
+                this.importError = error.message || 'Failed to import recipe';
+                this.showToast(`Failed to import: ${this.importError}`, 'error');
+            } finally {
+                this.importing = false;
             }
         },
 

@@ -91,5 +91,25 @@ export const api = {
         }
 
         return response.json();
+    },
+
+    /**
+     * Import a recipe from a thirdparty URL
+     */
+    async importRecipeFromUrl(url) {
+        const importUrl = API_URL.replace('/api/recipes', '') + '/api/recipes/import';
+        const response = await fetch(importUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            const details = Array.isArray(data.details) ? data.details.join(', ') : null;
+            throw new Error(details || data.error || 'Failed to import recipe');
+        }
+
+        return data;
     }
 };
