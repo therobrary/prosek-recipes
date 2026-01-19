@@ -77,7 +77,7 @@ The backend consists of a Cloudflare Worker (API), D1 database (SQLite), and R2 
 Create a new D1 database to store recipes:
 
 ```bash
-wrangler d1 create family-recipes-db
+wrangler d1 create "family-recipes-db"
 ```
 
 **Important**: Copy the `database_id` from the output. It will look like this:
@@ -96,7 +96,7 @@ database_id = "a486d94c-cf9d-40c7-8b73-a958cccb174e"
 Create an R2 bucket for storing recipe images:
 
 ```bash
-wrangler r2 bucket create family-recipes-images
+wrangler r2 bucket create "family-recipes-images"
 ```
 
 You should see:
@@ -128,7 +128,7 @@ bucket_name = "family-recipes-images"
 Apply the database schema to create the necessary tables:
 
 ```bash
-wrangler d1 execute family-recipes-db --file=backend/schema.sql --remote
+wrangler d1 execute "family-recipes-db" --file=backend/schema.sql --remote
 ```
 
 You should see:
@@ -143,7 +143,7 @@ You should see:
 If you want to start with example recipes:
 
 ```bash
-wrangler d1 execute family-recipes-db --file=backend/seed.sql --remote
+wrangler d1 execute "family-recipes-db" --file=backend/seed.sql --remote
 ```
 
 ### Step 6: (Optional) Configure Recipe URL Import
@@ -288,7 +288,7 @@ curl https://family-recipes-backend.YOUR-SUBDOMAIN.workers.dev/api/recipes
 Verify data is being stored:
 
 ```bash
-wrangler d1 execute family-recipes-db --command="SELECT * FROM recipes" --remote
+wrangler d1 execute "family-recipes-db" --command="SELECT * FROM recipes" --remote
 ```
 
 ### 4. Check R2 Bucket
@@ -296,7 +296,7 @@ wrangler d1 execute family-recipes-db --command="SELECT * FROM recipes" --remote
 If you uploaded images, verify they're stored:
 
 ```bash
-wrangler r2 object list family-recipes-images
+wrangler r2 object list "family-recipes-images"
 ```
 
 ---
@@ -366,7 +366,7 @@ Check the **Actions** tab in your GitHub repository to see the deployment progre
 
 **Solution**: Ensure you created the R2 bucket with the exact name `family-recipes-images`:
 ```bash
-wrangler r2 bucket create family-recipes-images
+wrangler r2 bucket create "family-recipes-images"
 ```
 
 ### Issue: "Error: Database not found"
@@ -426,7 +426,7 @@ If you're updating from an older version, check `MIGRATION.md` for migration ste
 2. **Access Control**: Consider adding authentication if needed
 3. **Backup Data**: Regularly export your database:
    ```bash
-   wrangler d1 export family-recipes-db --remote > backup.sql
+   wrangler d1 export "family-recipes-db" --remote > backup.sql
    ```
 
 ### Monitor & Maintain
