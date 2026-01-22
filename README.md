@@ -5,7 +5,7 @@ A digital cookbook application for preserving and sharing treasured family recip
 ## Features
 
 *   **Recipe Management:** Create, read, and update recipes.
-*   **Rich Media:** Upload and attach photos to your recipes.
+*   **Rich Media:** Upload and attach photos to your  recipes.
 *   **Tagging System:** Organize recipes with flexible tags (e.g., "Dinner", "Dessert", "Vegetarian").
 *   **Smart Scaling:** Automatically scale ingredient amounts for different serving sizes.
 *   **Mobile-First Design:** Fully responsive UI/UX designed for use in the kitchen on phones and tablets.
