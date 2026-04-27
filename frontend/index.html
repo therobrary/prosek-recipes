@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Cari's Family Recipes</title>
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#10B981">
+    <meta name="theme-color" content="#5e8056">
     <meta name="description" content="Treasured family recipes passed down through generations, made with love.">
 
     <!-- iOS PWA Support -->
@@ -23,15 +23,31 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            letter-spacing: -0.01em;
+            /* iOS viewport height fix + safe area for notch/home indicator */
+            min-height: -webkit-fill-available;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        h1, h2, h3, .serif {
+            font-family: 'Playfair Display', Georgia, serif;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
         [x-cloak] { display: none !important; }
 
         /* Placeholder image pattern for recipes without images */
         .recipe-placeholder {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+            background: linear-gradient(135deg, #f4f7f0 0%, #e3ebe0 50%, #c5d9c0 100%);
             position: relative;
             overflow: hidden;
         }
@@ -39,40 +55,46 @@
             content: '';
             position: absolute;
             inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' opacity='0.3'%3E%3Cpath d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%235e8056' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' opacity='0.25'%3E%3Cpath d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/%3E%3C/svg%3E");
             background-size: 60px 60px;
             background-position: center;
             background-repeat: no-repeat;
         }
 
-        /* Card animations */
+        /* Card animations - restrained and refined */
         .recipe-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.06);
         }
         .recipe-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+            border-color: #c5d9c0;
         }
         .recipe-card:focus {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12);
-            outline: 2px solid #10B981;
-            outline-offset: 2px;
+            transform: translateY(-2px);
+            outline: 2px solid #4a6741;
+            outline-offset: 3px;
+            border-color: #7a9a72;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.1), 0 0 0 5px rgba(94, 128, 86, 0.24);
         }
 
-        /* Image zoom on hover */
+        /* Image zoom on hover - restrained */
         .recipe-card .card-image {
-            transition: transform 0.4s ease;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .recipe-card:hover .card-image {
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         /* Staggered animation for cards */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(16px);
             }
             to {
                 opacity: 1;
@@ -80,37 +102,37 @@
             }
         }
         .recipe-card {
-            animation: fadeInUp 0.5s ease forwards;
+            animation: fadeInUp 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
             opacity: 0;
         }
-        .recipe-card:nth-child(1) { animation-delay: 0.05s; }
-        .recipe-card:nth-child(2) { animation-delay: 0.1s; }
-        .recipe-card:nth-child(3) { animation-delay: 0.15s; }
-        .recipe-card:nth-child(4) { animation-delay: 0.2s; }
-        .recipe-card:nth-child(5) { animation-delay: 0.25s; }
-        .recipe-card:nth-child(6) { animation-delay: 0.3s; }
-        .recipe-card:nth-child(7) { animation-delay: 0.35s; }
-        .recipe-card:nth-child(8) { animation-delay: 0.4s; }
-        .recipe-card:nth-child(n+9) { animation-delay: 0.45s; }
+        .recipe-card:nth-child(1) { animation-delay: 0.04s; }
+        .recipe-card:nth-child(2) { animation-delay: 0.08s; }
+        .recipe-card:nth-child(3) { animation-delay: 0.12s; }
+        .recipe-card:nth-child(4) { animation-delay: 0.16s; }
+        .recipe-card:nth-child(5) { animation-delay: 0.20s; }
+        .recipe-card:nth-child(6) { animation-delay: 0.24s; }
+        .recipe-card:nth-child(7) { animation-delay: 0.28s; }
+        .recipe-card:nth-child(8) { animation-delay: 0.32s; }
+        .recipe-card:nth-child(n+9) { animation-delay: 0.36s; }
 
         /* Tag pill hover effect */
         .tag-pill {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
         .tag-pill:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
 
-        /* Button press effect */
+       /* Button press effect */
         .btn-press {
             transition: transform 0.1s ease;
         }
         .btn-press:active {
-            transform: scale(0.95);
+            transform: scale(0.97);
         }
 
-        /* Skeleton loading animation */
+       /* Skeleton loading animation */
         @keyframes shimmer {
             0% {
                 background-position: -200% 0;
@@ -120,7 +142,7 @@
             }
         }
         .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: 0.5rem;
@@ -129,82 +151,111 @@
             background: white;
             border-radius: 0.75rem;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.06);
         }
 
-        /* Dark Mode Styles */
+     /* Dark Mode Styles - green-tinted dark theme */
         .dark body {
-            background-color: #111827;
-            color: #e5e7eb;
+            background-color: #141814;
+            color: #d1d5d8;
         }
         .dark .bg-background {
-            background-color: #111827;
+            background-color: #141814;
         }
         .dark .bg-white {
-            background-color: #1f2937;
+            background-color: #222922;
         }
         .dark .bg-gray-50 {
-            background-color: #374151;
+            background-color: #1c221c;
         }
         .dark .text-gray-800 {
-            color: #e5e7eb;
+            color: #d1d5d8;
         }
         .dark .text-gray-600 {
-            color: #9ca3af;
+            color: #8a948a;
         }
         .dark .text-gray-500 {
-            color: #9ca3af;
+            color: #93a193;
         }
         .dark .text-gray-400 {
-            color: #6b7280;
+            color: #5a685a;
         }
         .dark .text-gray-900 {
-            color: #f3f4f6;
+            color: #e8ebe8;
         }
         .dark .text-gray-700 {
-            color: #d1d5db;
+            color: #b0bab0;
         }
         .dark .border-gray-100 {
-            border-color: #374151;
+            border-color: #2a332a;
         }
         .dark .border-gray-200 {
-            border-color: #374151;
+            border-color: #2a332a;
         }
         .dark .border-gray-300 {
-            border-color: #4b5563;
+            border-color: #333d33;
         }
         .dark .shadow-md {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
         }
         .dark .skeleton {
-            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            background: linear-gradient(90deg, #2a332a 25%, #333d33 50%, #2a332a 75%);
             background-size: 200% 100%;
         }
         .dark .skeleton-card {
-            background: #1f2937;
+            background: #222922;
         }
         .dark .recipe-placeholder {
-            background: linear-gradient(135deg, #1e3a2f 0%, #15332b 50%, #0f2922 100%);
+            background: linear-gradient(135deg, #1e2e1e 0%, #1a281a 50%, #152015 100%);
         }
         .dark .recipe-placeholder::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' opacity='0.2'%3E%3Cpath d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 24 24' fill='none' stroke='%235e8056' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' opacity='0.15'%3E%3Cpath d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/%3E%3C/svg%3E");
         }
         .dark input, .dark textarea, .dark select {
-            background-color: #374151;
-            border-color: #4b5563;
-            color: #e5e7eb;
+            background-color: #1c221c;
+            border-color: #333d33;
+            color: #d1d5d8;
         }
         .dark input::placeholder, .dark textarea::placeholder {
-            color: #6b7280;
+            color: #5a685a;
         }
         .dark .bg-emerald-50 {
-            background-color: rgba(16, 185, 129, 0.15);
+            background-color: rgba(94, 128, 86, 0.15);
+        }
+        .dark .bg-teal-50 {
+            background-color: rgba(94, 128, 86, 0.15);
         }
         .dark .bg-red-50 {
-            background-color: rgba(239, 68, 68, 0.15);
+            background-color: rgba(180, 83, 83, 0.12);
         }
         .dark .bg-green-50 {
-            background-color: rgba(34, 197, 94, 0.15);
+            background-color: rgba(86, 150, 86, 0.12);
+        }
+
+        /* ============================================
+           REDUCED MOTION - Accessibility
+           ============================================ */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .recipe-card {
+                animation: none;
+                opacity: 1;
+            }
+            .recipe-card:hover {
+                transform: none;
+            }
+            .recipe-card .card-image {
+                transition: none;
+            }
+            .recipe-card:hover .card-image {
+                transform: none;
+            }
         }
 
         @media print {
@@ -264,6 +315,37 @@
             /* Meta data centering */
             .flex.items-center.gap-1 { justify-content: center !important; }
         }
+
+        /* ============================================
+           MOBILE & SMALL-SCREEN POLISH
+           ============================================ */
+        @media (max-width: 639px) {
+            /* Ensure minimum 44px touch targets for all interactive elements */
+            .btn-press,
+            .touch-target,
+            input[type="text"],
+            input[type="url"],
+            input[type="file"],
+            textarea,
+            select {
+                min-height: 44px;
+            }
+            .touch-target {
+                min-width: 44px;
+            }
+            /* Ensure form inputs have comfortable tap area */
+            input[type="text"], input[type="url"], textarea {
+                font-size: 16px !important; /* Prevents iOS zoom on focus */
+            }
+            /* Keep modal bodies scrollable and visible on short viewports */
+            .recipe-modal-body {
+                max-height: 58vh;
+            }
+            .form-modal-body {
+                max-height: 72vh;
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+            }
+        }
     </style>
     <script>
         tailwind.config = {
@@ -271,13 +353,27 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#10B981', // Emerald-500
-                        'primary-dark': '#059669', // Emerald-700
-                        secondary: '#4B5563', // Gray-600
-                        background: '#FDFBF7', // Warm Cream
-                        'background-dark': '#1a1a2e', // Dark blue-gray
-                        'surface-dark': '#16213e', // Darker surface
-                        'card-dark': '#1f2937', // Card background dark
+                        emerald: {
+                            50: '#f4f7f0',
+                            100: '#e3ebe0',
+                            200: '#c5d9c0',
+                            300: '#9db996',
+                            400: '#7a9a72',
+                            500: '#5e8056',
+                            600: '#4a6741',
+                            700: '#3b5234',
+                            800: '#2f412a',
+                            900: '#273624',
+                        },
+                        secondary: '#6B7280',
+                        background: '#FAFAF5',
+                        'background-dark': '#141814',
+                        'surface-dark': '#1a2019',
+                        'card-dark': '#222922',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Playfair Display', 'Georgia', 'serif'],
                     }
                 }
             }
@@ -301,40 +397,40 @@
       @keydown.escape.window="if (showFormModal) closeForm(); else if (selectedRecipe) closeRecipe();">
 
     <!-- Hero Header Section -->
-    <header class="relative bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
+    <header class="relative bg-gradient-to-br from-[#3b5234] via-[#4a6741] to-[#5e8056] overflow-hidden">
         <!-- Decorative background pattern -->
-        <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0 opacity-[0.07]">
             <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <pattern id="hero-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <circle cx="20" cy="20" r="2" fill="white"/>
+                        <circle cx="20" cy="20" r="1.5" fill="white"/>
                     </pattern>
                 </defs>
                 <rect width="100%" height="100%" fill="url(#hero-pattern)"/>
             </svg>
         </div>
         
-        <!-- Decorative food icons floating -->
+        <!-- Subtle decorative elements -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <svg class="absolute top-4 left-[10%] w-12 h-12 text-white/20 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute top-6 left-[8%] w-10 h-10 text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <svg class="absolute top-14 right-[12%] w-8 h-8 text-white/10" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
-            <svg class="absolute top-12 right-[15%] w-8 h-8 text-white/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            <svg class="absolute bottom-10 left-[18%] w-9 h-9 text-white/8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
             </svg>
-            <svg class="absolute bottom-8 left-[20%] w-10 h-10 text-white/10" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute bottom-14 right-[6%] w-11 h-11 text-white/10" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M18.06 22.99h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05l-5 2V1h-2v6.05l-5-2 1.35 10.51v.01c.09.79.78 1.43 1.59 1.43h1.66l-.67 5.23c-.04.32.21.61.54.61.24 0 .45-.17.5-.4l.78-5.44h.78l.78 5.44c.05.23.26.4.5.4.33 0 .58-.29.54-.61l-.67-5.23z"/>
-            </svg>
-            <svg class="absolute bottom-16 right-[8%] w-14 h-14 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
             </svg>
         </div>
         
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-            <!-- Dark Mode Toggle - Top Right -->
-            <div class="absolute top-4 right-4 z-10">
+       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-14">
+            <!-- Dark Mode Toggle -->
+            <div class="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
                 <button @click="toggleDarkMode()"
-                        class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-all duration-300 shadow-lg"
+                        class="bg-white/15 backdrop-blur-sm hover:bg-white/25 text-white rounded-full p-2.5 transition-all duration-200 shadow-lg"
                         :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
                     <!-- Sun icon (shown in dark mode) -->
                     <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -347,45 +443,45 @@
                 </button>
             </div>
 
-            <div class="text-center mb-8">
+           <div class="text-center mb-5 sm:mb-7">
                 <!-- Logo/Title -->
-                <div class="inline-flex items-center justify-center gap-3 mb-4 cursor-pointer" @click="resetFilters()">
-                    <div class="bg-white/20 backdrop-blur-sm rounded-full p-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <div class="inline-flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-3 cursor-pointer" @click="resetFilters()">
+                    <div class="bg-white/15 backdrop-blur-sm rounded-full p-2 sm:p-2.5 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 sm:h-9 sm:w-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                     </div>
-                    <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg serif">Cari's Family Recipes</h1>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg serif tracking-tight">Cari's Family Recipes</h1>
                 </div>
-                <p class="text-emerald-50 text-lg md:text-xl max-w-2xl mx-auto">
+                <p class="text-emerald-100 text-sm sm:text-base md:text-lg max-w-sm sm:max-w-xl mx-auto leading-relaxed font-light">
                     Treasured recipes passed down through generations, made with love.
                 </p>
             </div>
 
-            <!-- Search Bar - Centered and Prominent -->
+           <!-- Search Bar - Centered and Prominent -->
             <div class="max-w-2xl mx-auto">
                 <div class="relative">
                     <input
                         type="text"
                         id="search"
                         placeholder="Search for a recipe..."
-                        class="w-full pl-14 pr-12 py-4 text-lg border-0 rounded-2xl shadow-xl focus:ring-4 focus:ring-white/30 outline-none transition bg-white/95 backdrop-blur-sm placeholder-gray-400"
+                        class="w-full pl-12 sm:pl-14 pr-12 py-3 sm:py-3.5 text-sm sm:text-base border-0 rounded-xl shadow-xl focus:ring-2 focus:ring-white/30 outline-none transition bg-white/95 backdrop-blur-sm placeholder-gray-400"
                         x-model="searchQuery"
                     >
                     <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <svg class="h-6 w-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
-                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center gap-2">
-                        <button x-show="searchQuery" @click="searchQuery = ''" class="text-gray-400 hover:text-gray-600 focus:outline-none btn-press">
+                    <div class="absolute inset-y-0 right-0 pr-2 sm:pr-4 flex items-center gap-1.5 sm:gap-2">
+                        <button x-show="searchQuery" @click="searchQuery = ''" class="text-gray-400 hover:text-gray-600 focus:outline-none btn-press p-2 rounded-full" title="Clear search">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                         <!-- Add Recipe Button -->
-                        <button @click="openForm()" class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-2 shadow-md transition-colors btn-press" title="Add Recipe">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <button @click="openForm()" class="bg-white/90 hover:bg-white text-emerald-600 rounded-lg p-2 sm:p-2.5 shadow-md transition-colors btn-press" title="Add Recipe">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
                         </button>
@@ -393,9 +489,9 @@
                 </div>
             </div>
 
-            <!-- Recipe count -->
-            <div class="text-center mt-6">
-                <p class="text-emerald-100 text-sm">
+           <!-- Recipe count -->
+             <div class="text-center mt-4 sm:mt-5">
+                <p class="text-emerald-200 text-sm">
                     <span x-text="filteredRecipes.length"></span> 
                     <span x-text="filteredRecipes.length === 1 ? 'recipe' : 'recipes'"></span>
                     <span x-show="searchQuery || selectedTags.length > 0"> found</span>
@@ -406,14 +502,14 @@
         
         <!-- Curved bottom edge -->
         <div class="absolute bottom-0 left-0 right-0">
-            <svg class="w-full h-8 md:h-12" viewBox="0 0 1440 48" fill="none" preserveAspectRatio="none">
-                <path d="M0 48h1440V24C1200 40 960 48 720 48S240 40 0 24v24z" fill="#FDFBF7"/>
+             <svg class="w-full h-6 sm:h-8 md:h-12" viewBox="0 0 1440 48" fill="none" preserveAspectRatio="none">
+                <path d="M0 48h1440V24C1200 40 960 48 720 48S240 40 0 24v24z" fill="#FAFAF5"/>
             </svg>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
 
         <!-- Skeleton Loading State -->
         <div x-show="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -473,16 +569,16 @@
         </div>
 
         <!-- Tag Filters - Pill Style -->
-        <div x-show="!isLoading && !error && allTags.length > 0" class="mb-8">
-            <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div x-show="!isLoading && !error && allTags.length > 0" class="mb-6 sm:mb-8">
+          <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <span class="text-sm font-medium text-gray-500">Filter by category:</span>
                 <!-- Sort Dropdown -->
                 <div class="flex items-center gap-2">
                     <label for="sort-select" class="text-sm text-gray-500">Sort:</label>
-                    <select id="sort-select" 
-                            x-model="sortBy" 
+                    <select id="sort-select"
+                            x-model="sortBy"
                             @change="setSortBy($event.target.value)"
-                            class="text-sm border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary py-1.5 pl-3 pr-8">
+                            class="text-sm border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 py-1.5 pl-3 pr-8 min-h-[36px]">
                         <template x-for="option in sortOptions" :key="option.value">
                             <option :value="option.value" x-text="option.label"></option>
                         </template>
@@ -493,11 +589,11 @@
                 <template x-for="tag in allTags" :key="tag">
                     <button
                         @click="toggleTag(tag)"
-                        :class="selectedTags.includes(tag) 
-                            ? 'bg-emerald-500 text-white shadow-md ring-2 ring-emerald-300' 
+                        :class="selectedTags.includes(tag)
+                            ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-300'
                             : 'bg-white text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-sm'"
                         :aria-pressed="selectedTags.includes(tag)"
-                        class="tag-pill btn-press px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-gray-100"
+                        class="tag-pill btn-press px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 border border-gray-100"
                         x-text="tag"
                     ></button>
                 </template>
@@ -508,7 +604,7 @@
                     x-transition:enter-start="opacity-0 scale-95"
                     x-transition:enter-end="opacity-100 scale-100"
                     @click="resetFilters()"
-                    class="btn-press px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap shadow-sm transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-1"
+                    class="btn-press px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap shadow-sm transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-1"
                     title="Clear all filters"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -520,7 +616,7 @@
         </div>
 
         <!-- Recipe Grid - Pinterest-style Hero Image Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             <template x-for="(recipe, index) in filteredRecipes" :key="recipe.id || index">
                 <div class="recipe-card bg-white rounded-xl shadow-md overflow-hidden flex flex-col cursor-pointer group"
                      @click="openRecipe(recipe)"
@@ -530,7 +626,7 @@
                      :aria-label="'View recipe: ' + recipe.title">
                     
                     <!-- Hero Image Section -->
-                    <div class="relative h-48 overflow-hidden" :class="!recipe.image_url ? 'recipe-placeholder' : ''">
+                    <div class="relative h-40 sm:h-48 overflow-hidden" :class="!recipe.image_url ? 'recipe-placeholder' : ''">
                         <img x-show="recipe.image_url" 
                              :src="recipe.image_url" 
                              :alt="recipe.title"
@@ -539,21 +635,21 @@
                         <!-- Gradient overlay for text readability -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                         
-                        <!-- Tags positioned on image -->
-                        <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-4rem)]">
+                      <!-- Tags positioned on image -->
+                        <div class="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-wrap gap-1 max-w-[calc(100%-3.5rem)]">
                             <template x-for="tag in recipe.tags.slice(0, 2)" :key="tag">
-                                <span class="tag-pill inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm shadow-sm"
+                                <span class="tag-pill inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-white/90 backdrop-blur-sm shadow-sm"
                                       :class="getCategoryColor(tag)"
                                       x-text="tag"></span>
                             </template>
-                            <span x-show="recipe.tags.length > 2" 
-                                  class="tag-pill inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/80 backdrop-blur-sm text-gray-600 shadow-sm"
+                            <span x-show="recipe.tags.length > 2"
+                                  class="tag-pill inline-flex items-center px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-white/80 backdrop-blur-sm text-gray-600 shadow-sm"
                                   x-text="'+' + (recipe.tags.length - 2)"></span>
                         </div>
                         
-                        <!-- Favorite Button -->
-                        <button @click.stop="toggleFavorite(recipe.id)" 
-                                class="absolute top-3 right-3 bg-white/20 backdrop-blur-sm hover:bg-white/40 rounded-full p-2 transition-all"
+                     <!-- Favorite Button -->
+                        <button @click.stop="toggleFavorite(recipe.id)"
+                                class="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/20 backdrop-blur-sm hover:bg-white/40 rounded-full p-1.5 sm:p-2 transition-all"
                                 :class="isFavorite(recipe.id) ? 'text-red-500' : 'text-white'"
                                 :title="isFavorite(recipe.id) ? 'Remove from favorites' : 'Add to favorites'">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="isFavorite(recipe.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -561,40 +657,40 @@
                             </svg>
                         </button>
                         
-                        <!-- Title overlay on image -->
-                        <div class="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 class="text-xl font-bold text-white drop-shadow-lg group-hover:text-emerald-200 transition-colors line-clamp-2" 
+                      <!-- Title overlay on image -->
+                        <div class="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                            <h3 class="text-base sm:text-xl font-bold text-white drop-shadow-lg group-hover:text-emerald-200 transition-colors line-clamp-2"
                                 x-text="recipe.title"></h3>
                         </div>
                     </div>
                     
-                    <!-- Card Body -->
-                    <div class="p-4 flex flex-col flex-grow">
+                   <!-- Card Body -->
+                    <div class="p-3 sm:p-4 flex flex-col flex-grow">
                         <!-- Ingredient Preview -->
-                        <p class="text-sm text-gray-500 line-clamp-2 mb-4 flex-grow">
+                        <p class="text-xs sm:text-sm text-gray-500 line-clamp-2 mb-3 sm:mb-4 flex-grow leading-relaxed">
                             <span x-text="recipe.ingredients.map(i => i.startsWith('__SECTION__') ? '' : i).filter(i => i).slice(0, 4).join(', ')"></span>...
                         </p>
                         
                         <!-- Meta info footer -->
-                        <div class="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-between text-[11px] sm:text-xs text-gray-400 pt-2 sm:pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2 sm:gap-3">
                                 <div class="flex items-center gap-1" x-show="recipe.serves">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                     <span x-text="recipe.serves.replace('Serves:', '').trim()"></span>
                                 </div>
                                 <div class="flex items-center gap-1" x-show="recipe.cook_time">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <span x-text="recipe.cook_time.replace('Cook Time:', '').trim()"></span>
                                 </div>
                             </div>
-                            <!-- View indicator -->
-                            <div class="flex items-center gap-1 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span class="font-medium">View</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <!-- View indicator - always visible on mobile, hover on desktop -->
+                            <div class="flex items-center gap-0.5 sm:gap-1 text-emerald-500 opacity-60 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="font-medium text-[11px] sm:text-xs">View</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                             </div>
@@ -605,27 +701,27 @@
         </div>
 
         <!-- Empty State - Illustrated -->
-        <div x-show="!isLoading && filteredRecipes.length === 0" class="text-center py-16" x-cloak>
-            <div class="max-w-md mx-auto">
+        <div x-show="!isLoading && filteredRecipes.length === 0" class="text-center py-12 sm:py-16" x-cloak>
+            <div class="max-w-md mx-auto px-2">
                 <!-- Illustrated Empty State SVG -->
-                <div class="relative mb-8">
-                    <div class="w-40 h-40 mx-auto bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                <div class="relative mb-6 sm:mb-8">
+                    <div class="w-28 h-28 sm:w-40 sm:h-40 mx-auto bg-gradient-to-br from-emerald-50 to-emerald-200 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 sm:h-20 sm:w-20 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                     </div>
                     <!-- Decorative elements -->
                     <div class="absolute top-2 right-1/4 w-3 h-3 bg-emerald-200 rounded-full animate-pulse"></div>
-                    <div class="absolute bottom-4 left-1/4 w-2 h-2 bg-teal-300 rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
+                    <div class="absolute bottom-4 left-1/4 w-2 h-2 bg-emerald-300 rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
                     <div class="absolute top-1/2 right-1/5 w-2 h-2 bg-emerald-300 rounded-full animate-pulse" style="animation-delay: 1s;"></div>
                 </div>
                 
                 <!-- Different messages based on context -->
                 <template x-if="searchQuery || selectedTags.length > 0">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">No recipes match your search</h3>
-                        <p class="text-gray-500 mb-6">Try adjusting your filters or search for something else.</p>
-                        <button @click="resetFilters()" class="btn-press inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-md">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">No recipes match</h3>
+                        <p class="text-sm text-gray-500 mb-4 sm:mb-6">Try adjusting your filters or search for something else.</p>
+                        <button @click="resetFilters()" class="btn-press inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-md text-sm sm:text-base">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
@@ -636,9 +732,9 @@
                 
                 <template x-if="!searchQuery && selectedTags.length === 0">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Your recipe book is empty</h3>
-                        <p class="text-gray-500 mb-6">Start building your collection by adding your first family recipe!</p>
-                        <button @click="openForm()" class="btn-press inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-md">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">Your recipe book is empty</h3>
+                        <p class="text-sm text-gray-500 mb-4 sm:mb-6">Start building your collection by adding your first family recipe!</p>
+                        <button @click="openForm()" class="btn-press inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-md text-sm sm:text-base">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
@@ -653,7 +749,7 @@
 
     <!-- Recipe Detail Modal - Magazine Style -->
     <div x-show="selectedRecipe && !showFormModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-cloak>
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="flex items-end justify-center min-h-screen pt-2 sm:pt-4 px-2 sm:px-4 pb-4 sm:pb-20 text-center sm:block sm:p-0">
 
             <div x-show="selectedRecipe && !showFormModal"
                  x-transition:enter="ease-out duration-300"
@@ -669,16 +765,16 @@
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div x-show="selectedRecipe && !showFormModal"
-                 x-transition:enter="ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave="ease-in duration-200"
-                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
+                  x-transition:enter="ease-out duration-300"
+                  x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                  x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                  x-transition:leave="ease-in duration-200"
+                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                  x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                  class="inline-block align-bottom bg-white rounded-t-2xl sm:rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh]">
 
                 <!-- Full-bleed Hero Image -->
-                <div class="relative h-64 sm:h-80 overflow-hidden" :class="!selectedRecipe?.image_url ? 'recipe-placeholder h-48' : ''">
+                <div class="relative h-48 sm:h-64 md:h-80 overflow-hidden" :class="!selectedRecipe?.image_url ? 'recipe-placeholder h-40 sm:h-48' : ''">
                     <img x-show="selectedRecipe?.image_url" 
                          :src="selectedRecipe?.image_url" 
                          :alt="selectedRecipe?.title"
@@ -688,31 +784,31 @@
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10"></div>
                     
                     <!-- Close & Action buttons -->
-                    <div class="absolute top-4 right-4 flex gap-2 print:hidden">
-                        <button @click="shareRecipe(selectedRecipe)" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Share Recipe">
+                    <div class="absolute top-2 right-2 sm:top-4 sm:right-4 flex gap-1.5 sm:gap-2 print:hidden">
+                        <button @click="shareRecipe(selectedRecipe)" class="touch-target bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2 sm:p-2.5 transition-colors" title="Share Recipe">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                             </svg>
                         </button>
-                        <button @click="toggleFavorite(selectedRecipe.id)" 
-                                class="bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-2.5 transition-colors" 
+                        <button @click="toggleFavorite(selectedRecipe.id)"
+                                class="touch-target bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-2 sm:p-2.5 transition-colors"
                                 :class="isFavorite(selectedRecipe?.id) ? 'text-red-400' : 'text-white'"
                                 :title="isFavorite(selectedRecipe?.id) ? 'Remove from favorites' : 'Add to favorites'">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :fill="isFavorite(selectedRecipe?.id) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
                         </button>
-                        <button @click="window.print()" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Print Recipe">
+                        <button @click="window.print()" class="touch-target bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2 sm:p-2.5 transition-colors" title="Print Recipe">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
                         </button>
-                        <button @click="openForm(selectedRecipe)" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Edit Recipe">
+                        <button @click="openForm(selectedRecipe)" class="touch-target bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2 sm:p-2.5 transition-colors" title="Edit Recipe">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
-                        <button @click="closeRecipe()" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2.5 transition-colors" title="Close">
+                        <button @click="closeRecipe()" class="touch-target bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-full p-2 sm:p-2.5 transition-colors" title="Close">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -720,16 +816,16 @@
                     </div>
                     
                     <!-- Title overlay on image -->
-                    <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                        <div class="tag-container flex flex-wrap gap-2 mb-3 print:hidden">
+                    <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
+                        <div class="tag-container flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3 print:hidden">
                             <template x-for="tag in selectedRecipe?.tags" :key="tag">
-                                <span class="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium" x-text="tag"></span>
+                                <span class="px-2 py-0.5 sm:px-3 sm:py-1 bg-white/20 backdrop-blur-sm rounded-full text-[10px] sm:text-sm font-medium" x-text="tag"></span>
                             </template>
                         </div>
-                        <h3 class="text-3xl sm:text-4xl font-bold text-white drop-shadow-lg serif" id="modal-title" x-text="selectedRecipe?.title"></h3>
-                        
+                        <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg serif leading-tight" id="modal-title" x-text="selectedRecipe?.title"></h3>
+
                         <!-- Meta info -->
-                        <div class="flex flex-wrap gap-4 mt-3 text-white/90 text-sm">
+                        <div class="flex flex-wrap gap-3 sm:gap-4 mt-2 sm:mt-3 text-white/90 text-xs sm:text-sm">
                             <span x-show="selectedRecipe?.serves" class="flex items-center gap-1.5">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -747,48 +843,48 @@
                 </div>
 
                 <!-- Content Area -->
-                <div class="px-6 sm:px-8 py-6 max-h-[50vh] overflow-y-auto">
+                <div class="px-4 sm:px-6 md:px-8 py-4 sm:py-6 recipe-modal-body max-h-[55vh] sm:max-h-[50vh] overflow-y-auto">
                     
-                    <!-- Portion Scale Control -->
-                    <div class="mb-6 bg-emerald-50 p-4 rounded-xl flex items-center gap-4 print:hidden">
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <!-- Portion Scale Control -->
+                    <div class="mb-4 sm:mb-6 bg-emerald-50 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 print:hidden">
+                        <div class="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                             </svg>
                             <span class="text-sm font-semibold text-emerald-800">Scale Recipe:</span>
                         </div>
-                        <div class="flex items-center gap-2 bg-white rounded-lg shadow-sm px-2 py-1">
-                            <button @click="multiplier = Math.max(0.5, multiplier - 0.5)" class="p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600 focus:outline-none transition btn-press">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm px-3 py-2 w-full sm:w-auto justify-between sm:justify-start">
+                            <button @click="multiplier = Math.max(0.5, multiplier - 0.5)" class="p-2.5 sm:p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600 focus:outline-none transition btn-press" title="Decrease">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
                                 </svg>
                             </button>
-                            <span class="text-sm font-bold w-12 text-center text-emerald-800" x-text="multiplier + 'x'"></span>
-                            <button @click="multiplier += 0.5" class="p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600 focus:outline-none transition btn-press">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <span class="text-base sm:text-sm font-bold w-12 text-center text-emerald-800" x-text="multiplier + 'x'"></span>
+                            <button @click="multiplier += 0.5" class="p-2.5 sm:p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600 focus:outline-none transition btn-press" title="Increase">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                                 </svg>
                             </button>
                         </div>
-                        <span x-show="multiplier !== 1" class="text-xs text-emerald-600 italic">Amounts adjusted</span>
+                        <span x-show="multiplier !== 1" class="text-xs text-emerald-600 italic sm:self-center">Amounts adjusted</span>
                     </div>
 
                     <!-- Two Column Layout: Ingredients & Directions -->
-                    <div class="grid md:grid-cols-5 gap-8 print:grid-cols-5">
+                    <div class="grid md:grid-cols-5 gap-6 sm:gap-8 print:grid-cols-5">
                         <!-- Ingredients Column (narrower) -->
                         <div class="md:col-span-2">
                             <div class="sticky top-0">
-                                <h4 class="flex items-center gap-2 text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-emerald-200">
+                                <h4 class="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4 pb-2 border-b-2 border-emerald-200">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                     </svg>
                                     Ingredients
                                 </h4>
-                                <ul class="space-y-2">
+                                <ul class="space-y-1.5 sm:space-y-2">
                                     <template x-for="(ingredient, idx) in selectedRecipe?.ingredients" :key="idx">
-                                        <li :class="ingredient.startsWith('__SECTION__') 
-                                            ? 'font-bold text-gray-800 mt-4 pt-2 text-base border-t border-gray-100' 
-                                            : 'flex items-start gap-2 text-gray-600 text-sm py-1 hover:bg-emerald-50 rounded px-2 -mx-2 transition-colors cursor-pointer'"
+                                        <li :class="ingredient.startsWith('__SECTION__')
+                                            ? 'font-bold text-gray-800 mt-3 sm:mt-4 pt-2 text-sm sm:text-base border-t border-gray-100'
+                                            : 'flex items-start gap-2 text-gray-600 text-sm py-1.5 sm:py-1 hover:bg-emerald-50 rounded px-2 -mx-2 transition-colors cursor-pointer'"
                                             @click="!ingredient.startsWith('__SECTION__') && ($el.classList.toggle('line-through'), $el.classList.toggle('text-gray-400'))">
                                             <span x-show="!ingredient.startsWith('__SECTION__')" class="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
                                             <span x-text="scaleIngredient(ingredient.replace('__SECTION__', ''), multiplier)"></span>
@@ -800,19 +896,19 @@
                         
                         <!-- Directions Column (wider) -->
                         <div class="md:col-span-3">
-                            <h4 class="flex items-center gap-2 text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-emerald-200">
+                            <h4 class="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4 pb-2 border-b-2 border-emerald-200">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                 </svg>
                                 Directions
                             </h4>
-                            <ol class="space-y-4">
+                            <ol class="space-y-3 sm:space-y-4">
                                 <template x-for="(step, index) in selectedRecipe?.directions" :key="index">
-                                    <li :class="step.startsWith('__SECTION__') 
-                                        ? 'font-bold text-gray-800 mt-6 pt-3 text-base border-t border-gray-200' 
-                                        : 'flex gap-4 text-gray-600 text-sm leading-relaxed'">
-                                        <span x-show="!step.startsWith('__SECTION__')" 
-                                              class="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-bold"
+                                    <li :class="step.startsWith('__SECTION__')
+                                        ? 'font-bold text-gray-800 mt-4 sm:mt-6 pt-3 text-sm sm:text-base border-t border-gray-200'
+                                        : 'flex gap-3 sm:gap-4 text-gray-600 text-sm leading-relaxed'">
+                                        <span x-show="!step.startsWith('__SECTION__')"
+                                              class="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs sm:text-sm font-bold"
                                               x-text="getStepNumber(selectedRecipe.directions, index)"></span>
                                         <span x-text="step.replace('__SECTION__', '')" class="pt-0.5"></span>
                                     </li>
@@ -823,11 +919,11 @@
                 </div>
                 
                 <!-- Footer -->
-                <div class="bg-gray-50 px-6 py-4 border-t print:hidden">
-                    <div class="flex justify-between items-center">
+                <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t print:hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
                         <p class="text-xs text-gray-400">Click ingredients to cross them off</p>
-                        <button type="button" 
-                                class="btn-press inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors" 
+                        <button type="button"
+                                class="btn-press w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition-colors"
                                 @click="closeRecipe()">
                             Close Recipe
                         </button>
@@ -839,29 +935,29 @@
 
     <!-- Add/Edit Form Modal (Moved outside Main) -->
     <div x-show="showFormModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="form-modal-title" role="dialog" aria-modal="true" x-cloak>
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="flex items-end justify-center min-h-screen pt-2 sm:pt-4 px-2 sm:px-4 pb-4 sm:pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeForm()" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+            <div class="inline-block align-bottom bg-white rounded-t-2xl sm:rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full max-h-[92vh] sm:max-h-[85vh]">
                 <form @submit.prevent="saveRecipe">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-h-[85vh] overflow-y-auto">
-                        <h3 class="text-2xl font-bold text-gray-900 serif mb-4" x-text="formData.id ? 'Edit Recipe' : 'Add New Recipe'"></h3>
+                    <div class="bg-white px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-4 form-modal-body max-h-[85vh] sm:max-h-[75vh] overflow-y-auto">
+                        <h3 class="text-xl sm:text-2xl font-bold text-gray-900 serif mb-3 sm:mb-4" x-text="formData.id ? 'Edit Recipe' : 'Add New Recipe'"></h3>
 
-                        <div class="space-y-4">
-                            <div x-show="!formData.id" class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                                <label class="block text-sm font-semibold text-emerald-900 mb-2">Import from recipe URL</label>
-                                <div class="flex gap-2">
+                        <div class="space-y-3 sm:space-y-4">
+                            <div x-show="!formData.id" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
+                                <label class="block text-sm font-semibold text-emerald-800 mb-2">Import from recipe URL</label>
+                                <div class="flex flex-col sm:flex-row gap-2">
                                     <input type="url"
                                            x-model="importUrl"
                                            @input="importError = null"
                                            placeholder="https://example.com/recipe..."
-                                           class="flex-1 block w-full rounded-md shadow-sm border border-emerald-200 p-2 focus:ring-primary focus:border-primary">
+                                           class="flex-1 block w-full rounded-md shadow-sm border border-emerald-200 p-2.5 sm:p-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                     <button type="button"
                                             @click="importFromUrl()"
                                             :disabled="importing"
                                             :class="importing ? 'opacity-50 cursor-not-allowed' : ''"
-                                            class="px-4 py-2 rounded-md bg-primary text-white font-medium hover:bg-primary-dark shadow-sm">
+                                            class="px-4 py-2.5 sm:py-2 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700 shadow-sm text-sm whitespace-nowrap">
                                         <span x-text="importing ? 'Importing...' : 'Import'"></span>
                                     </button>
                                 </div>
@@ -871,40 +967,40 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="formData.title" 
+                                <input type="text" x-model="formData.title"
                                        @input="formErrors.title = null"
-                                       :class="formErrors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
-                                       class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                       :class="formErrors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'"
+                                       class="mt-1 block w-full rounded-md shadow-sm border p-2.5 sm:p-2 text-sm sm:text-base">
                                 <p x-show="formErrors.title" x-text="formErrors.title" class="mt-1 text-sm text-red-600"></p>
                                 <p class="mt-1 text-xs text-gray-400"><span x-text="formData.title.length"></span>/200</p>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Image</label>
-                                <div class="mt-1 flex items-center gap-4">
-                                    <div x-show="formData.image_url" class="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100 border">
+                                <div class="mt-1 flex items-start gap-3 sm:gap-4">
+                                    <div x-show="formData.image_url" class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-100 border flex-shrink-0">
                                         <img :src="formData.image_url" class="w-full h-full object-cover">
-                                        <button type="button" @click="formData.image_url = null; selectedFile = null" class="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl opacity-75 hover:opacity-100">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <button type="button" @click="formData.image_url = null; selectedFile = null" class="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl opacity-75 hover:opacity-100">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                                             </svg>
                                         </button>
                                     </div>
-                                    <input type="file" @change="handleFileSelect" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer">
+                                    <input type="file" @change="handleFileSelect" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer">
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1" x-text="uploading ? 'Uploading image...' : 'Optional: Upload a photo for this recipe'"></p>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Tags</label>
-                                <div class="mt-1 border rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary"
+                                <div class="mt-1 border rounded-md shadow-sm p-2 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500"
                                      :class="formErrors.tags ? 'border-red-500' : 'border-gray-300'">
-                                    <div class="flex flex-wrap gap-2 mb-2" x-show="formData.tags.length > 0">
+                                    <div class="flex flex-wrap gap-1.5 mb-2" x-show="formData.tags.length > 0">
                                         <template x-for="(tag, index) in formData.tags" :key="index">
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-primary text-white">
+                                            <span class="inline-flex items-center px-2 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium bg-emerald-600 text-white">
                                                 <span x-text="tag"></span>
-                                                <button type="button" @click="removeTag(index)" class="ml-1 text-white hover:text-gray-200 focus:outline-none">
-                                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <button type="button" @click="removeTag(index)" class="ml-1 text-white hover:text-gray-200 focus:outline-none p-0.5">
+                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                                                     </svg>
                                                 </button>
@@ -919,28 +1015,28 @@
                                         @keydown.backspace="handleBackspace()"
                                         @input="formErrors.tags = null"
                                         placeholder="Type a tag and press Enter..."
-                                        class="block w-full border-none focus:ring-0 p-0 text-sm"
+                                        class="block w-full border-none focus:ring-0 p-1.5 sm:p-0 text-sm"
                                     >
                                 </div>
                                 <p x-show="formErrors.tags" x-text="formErrors.tags" class="mt-1 text-sm text-red-600"></p>
                                 <p class="text-xs text-gray-500 mt-1">Press Enter or Comma to add a tag.</p>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Serves (e.g. 4-6)</label>
-                                    <input type="text" x-model="formData.serves" 
+                                    <input type="text" x-model="formData.serves"
                                            @input="formErrors.serves = null"
-                                           :class="formErrors.serves ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
-                                           class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                           :class="formErrors.serves ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'"
+                                           class="mt-1 block w-full rounded-md shadow-sm border p-2.5 sm:p-2 text-sm sm:text-base">
                                     <p x-show="formErrors.serves" x-text="formErrors.serves" class="mt-1 text-sm text-red-600"></p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Cook Time (e.g. 45 mins)</label>
-                                    <input type="text" x-model="formData.cook_time" 
+                                    <input type="text" x-model="formData.cook_time"
                                            @input="formErrors.cook_time = null"
-                                           :class="formErrors.cook_time ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
-                                           class="mt-1 block w-full rounded-md shadow-sm border p-2">
+                                           :class="formErrors.cook_time ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'"
+                                           class="mt-1 block w-full rounded-md shadow-sm border p-2.5 sm:p-2 text-sm sm:text-base">
                                     <p x-show="formErrors.cook_time" x-text="formErrors.cook_time" class="mt-1 text-sm text-red-600"></p>
                                 </div>
                             </div>
@@ -948,36 +1044,36 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Ingredients (One per line) <span class="text-red-500">*</span></label>
                                 <div class="text-xs text-gray-500 mb-1">Tip: Use __SECTION__ prefix for headers</div>
-                                <textarea x-model="formData.ingredientsText" rows="6" 
+                                <textarea x-model="formData.ingredientsText" rows="5"
                                           @input="formErrors.ingredients = null"
-                                          :class="formErrors.ingredients ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
-                                          class="mt-1 block w-full rounded-md shadow-sm border p-2 font-mono text-sm"></textarea>
+                                          :class="formErrors.ingredients ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'"
+                                          class="mt-1 block w-full rounded-md shadow-sm border p-2.5 sm:p-2 font-mono text-sm sm:text-base"></textarea>
                                 <p x-show="formErrors.ingredients" x-text="formErrors.ingredients" class="mt-1 text-sm text-red-600"></p>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Directions (One step per line) <span class="text-red-500">*</span></label>
-                                <textarea x-model="formData.directionsText" rows="6" 
+                                <textarea x-model="formData.directionsText" rows="5"
                                           @input="formErrors.directions = null"
-                                          :class="formErrors.directions ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary focus:border-primary'"
-                                          class="mt-1 block w-full rounded-md shadow-sm border p-2 font-mono text-sm"></textarea>
+                                          :class="formErrors.directions ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'"
+                                          class="mt-1 block w-full rounded-md shadow-sm border p-2.5 sm:p-2 font-mono text-sm sm:text-base"></textarea>
                                 <p x-show="formErrors.directions" x-text="formErrors.directions" class="mt-1 text-sm text-red-600"></p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2 sm:gap-3">
                         <button type="submit"
                                 :disabled="saving || uploading"
                                 :class="(saving || uploading) ? 'opacity-50 cursor-not-allowed' : ''"
-                                class="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:w-auto sm:text-sm">
+                                class="w-full sm:w-auto inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2.5 sm:py-2 bg-emerald-600 text-sm sm:text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600">
                             <svg x-show="saving || uploading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                             <span x-text="saving ? 'Saving...' : (uploading ? 'Uploading...' : 'Save Recipe')"></span>
                         </button>
-                        <button type="button" @click="closeForm()" :disabled="saving || uploading" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:w-auto sm:text-sm">
+                        <button type="button" @click="closeForm()" :disabled="saving || uploading" class="mt-2 sm:mt-0 w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2.5 sm:py-2 bg-white text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600">
                             Cancel
                         </button>
                     </div>
@@ -986,30 +1082,30 @@
         </div>
     </div>
 
-    <footer class="bg-white dark:bg-gray-800 border-t dark:border-gray-700 mt-auto transition-colors duration-300">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-500 dark:text-gray-400 text-sm">
+    <footer class="bg-white dark:bg-[#1c221c] border-t dark:border-[#2a332a] mt-auto transition-colors duration-300" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+        <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 dark:text-gray-500 text-sm">
                 &copy; <span x-text="new Date().getFullYear()"></span> Cari's Family Recipes. All rights reserved.
             </p>
         </div>
     </footer>
 
-    <!-- Toast Notification -->
-    <div x-show="toast.show"
-         x-transition:enter="transform ease-out duration-300 transition"
-         x-transition:enter-start="translate-y-2 opacity-0"
-         x-transition:enter-end="translate-y-0 opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed bottom-4 right-4 z-50 max-w-sm w-full shadow-lg rounded-lg pointer-events-auto"
-         :class="toast.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'"
-         x-cloak>
+   <!-- Toast Notification -->
+ <div x-show="toast.show"
+           x-transition:enter="transform ease-out duration-300 transition"
+           x-transition:enter-start="translate-y-2 opacity-0"
+           x-transition:enter-end="translate-y-0 opacity-100"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="opacity-100"
+           x-transition:leave-end="opacity-0"
+           class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 max-w-sm w-[calc(100vw-2rem)] sm:w-full shadow-lg pointer-events-auto"
+           :class="toast.type === 'success' ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'"
+           x-cloak>
         <div class="p-4">
             <div class="flex items-start">
                 <div class="flex-shrink-0">
                     <!-- Success Icon -->
-                    <svg x-show="toast.type === 'success'" class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <svg x-show="toast.type === 'success'" class="h-5 w-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
                     <!-- Error Icon -->
@@ -1018,11 +1114,11 @@
                     </svg>
                 </div>
                 <div class="ml-3 w-0 flex-1">
-                    <p class="text-sm font-medium" :class="toast.type === 'success' ? 'text-green-800' : 'text-red-800'" x-text="toast.message"></p>
+                    <p class="text-sm font-medium" :class="toast.type === 'success' ? 'text-emerald-800' : 'text-red-800'" x-text="toast.message"></p>
                 </div>
                 <div class="ml-4 flex-shrink-0 flex">
                     <button @click="toast.show = false" class="inline-flex rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                            :class="toast.type === 'success' ? 'text-green-500 hover:text-green-600 focus:ring-green-500' : 'text-red-500 hover:text-red-600 focus:ring-red-500'">
+                            :class="toast.type === 'success' ? 'text-emerald-600 hover:text-emerald-700 focus:ring-emerald-600' : 'text-red-500 hover:text-red-600 focus:ring-red-500'">
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>
@@ -1033,10 +1129,10 @@
     </div>
 
     <!-- PWA Install Banner -->
-    <div id="pwa-install-banner" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all duration-300">
+    <div id="pwa-install-banner" class="hidden fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 bg-white dark:bg-[#1c221c] rounded-2xl shadow-2xl border border-gray-100 dark:border-[#2a332a] overflow-hidden transform transition-all duration-300">
         <div class="p-4">
             <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-xl flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
@@ -1055,7 +1151,7 @@
                 <button onclick="dismissInstallBanner()" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     Not now
                 </button>
-                <button onclick="installPWA()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                <button onclick="installPWA()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -1147,11 +1243,11 @@
                         document.documentElement.classList.add('dark');
                         localStorage.setItem('theme', 'dark');
                         // Update theme-color meta tag for browser UI
-                        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#111827');
+                        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#2f412a');
                     } else {
                         document.documentElement.classList.remove('dark');
                         localStorage.setItem('theme', 'light');
-                        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#10B981');
+                        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#5e8056');
                     }
                 },
 

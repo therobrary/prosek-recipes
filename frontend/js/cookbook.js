@@ -68,11 +68,11 @@ export function cookbook() {
             if (this.darkMode) {
                 document.documentElement.classList.add('dark');
                 storage.setTheme('dark');
-                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#111827');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#2f412a');
             } else {
                 document.documentElement.classList.remove('dark');
                 storage.setTheme('light');
-                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#10B981');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#5e8056');
             }
         },
 

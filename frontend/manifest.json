@@ -4,8 +4,8 @@
   "description": "Treasured family recipes passed down through generations",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FDFBF7",
-  "theme_color": "#10B981",
+  "background_color": "#FAFAF5",
+  "theme_color": "#5e8056",
   "orientation": "portrait-primary",
   "icons": [
     {
