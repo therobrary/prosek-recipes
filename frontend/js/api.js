@@ -5,10 +5,32 @@ import { API_URL } from './config.js';
 
 export const api = {
     /**
-     * Fetch all recipes
+     * Fetch all recipes (handles pagination automatically)
      */
     async fetchRecipes() {
-        const response = await fetch(API_URL);
+        const results = [];
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+            const response = await fetch(`${API_URL}?limit=200&offset=${offset}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch recipes');
+            }
+            const data = await response.json();
+            results.push(...data.recipes);
+            hasMore = data.has_more;
+            offset += 200;
+        }
+
+        return results;
+    },
+
+    /**
+     * Fetch a single page of recipes (for explicit pagination control)
+     */
+    async fetchRecipesPage(limit, offset) {
+        const response = await fetch(`${API_URL}?limit=${limit}&offset=${offset}`);
         if (!response.ok) {
             throw new Error('Failed to fetch recipes');
         }
@@ -24,7 +46,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(recipeData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             if (errorData.details) {
@@ -32,7 +54,7 @@ export const api = {
             }
             throw new Error(errorData.error || 'Failed to create recipe');
         }
-        
+
         return response.json();
     },
 
@@ -45,7 +67,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(recipeData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             if (errorData.details) {
@@ -53,7 +75,7 @@ export const api = {
             }
             throw new Error(errorData.error || 'Failed to update recipe');
         }
-        
+
         return response.json();
     },
 
@@ -64,11 +86,11 @@ export const api = {
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to delete recipe');
         }
-        
+
         return response.json();
     },
 

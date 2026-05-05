@@ -52,7 +52,7 @@ export const validator = {
         }
 
         // Tags validation
-        if (formData.tags.some(t => t.length > VALIDATION_LIMITS.tag)) {
+        if (Array.isArray(formData.tags) && formData.tags.some(t => t.length > VALIDATION_LIMITS.tag)) {
             errors.tags = `Each tag must be ${VALIDATION_LIMITS.tag} characters or less`;
         }
 

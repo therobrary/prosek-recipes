@@ -8,5 +8,6 @@ CREATE TABLE recipes (
     directions TEXT, -- JSON Array
     tags TEXT, -- JSON Array
     image_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

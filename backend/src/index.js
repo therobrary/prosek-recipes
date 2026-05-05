@@ -483,9 +483,19 @@ export default {
 
 
       if (path === '/api/recipes' && request.method === 'GET') {
-        const { results } = await env.DB.prepare('SELECT * FROM recipes ORDER BY title ASC').all();
+        const limit = Math.min(parseInt(url.searchParams.get('limit'), 10) || 50, 200);
+        const offset = Math.max(parseInt(url.searchParams.get('offset'), 10) || 0, 0);
+
+        // Get total count
+        const { results: countResult } = await env.DB.prepare('SELECT COUNT(*) as total FROM recipes').all();
+        const total = countResult[0].total;
+
+        const { results } = await env.DB.prepare('SELECT * FROM recipes ORDER BY title ASC LIMIT ? OFFSET ?').bind(limit + 1, offset).all();
+        const has_more = results.length > limit;
+        const paged = results.slice(0, limit);
+
         // Parse JSON strings back to arrays
-        const recipes = results.map(r => {
+        const recipes = paged.map(r => {
             let tags = [];
             try {
                 // Handle case where tags might be null or invalid JSON
@@ -522,7 +532,7 @@ export default {
             };
         });
 
-        return new Response(JSON.stringify(recipes), {
+        return new Response(JSON.stringify({ recipes, total, has_more }), {
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/json',
@@ -692,7 +702,7 @@ export default {
 
            // Delete old image from R2 if image_url has changed
            const { results: existingRecipe } = await env.DB.prepare('SELECT image_url FROM recipes WHERE id = ?').bind(id).all();
-           if (existingRecipe[0]?.image_url && existingRecipe[0].image_url !== image_url) {
+           if (existingRecipe[0]?.image_url && image_url !== undefined && existingRecipe[0].image_url !== image_url) {
                const oldKeyMatch = existingRecipe[0].image_url.match(/\/api\/images\/(.+)$/);
                if (oldKeyMatch) {
                    await env.IMAGES_BUCKET.delete(oldKeyMatch[1]);
@@ -700,7 +710,7 @@ export default {
            }
 
            await env.DB.prepare(
-             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ?, image_url = ? WHERE id = ?'
+             'UPDATE recipes SET title = ?, serves = ?, cook_time = ?, ingredients = ?, directions = ?, tags = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
            )
            .bind(title.trim(), serves || null, cook_time || null, JSON.stringify(ingredients), JSON.stringify(directions), JSON.stringify(Array.isArray(tags) ? tags : []), image_url || null, id)
            .run();

@@ -145,10 +145,13 @@ export function cookbook() {
             const query = this.searchQuery.toLowerCase();
 
             let results = this.recipes.filter(recipe => {
+                const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+                const tags = Array.isArray(recipe.tags) ? recipe.tags : [];
                 const matchesSearch = recipe.title.toLowerCase().includes(query) ||
-                                      recipe.ingredients.some(i => i.toLowerCase().includes(query));
+                                      ingredients.some(i => i.toLowerCase().includes(query)) ||
+                                      tags.some(t => t.toLowerCase().includes(query));
                 const matchesTags = this.selectedTags.length === 0 ||
-                                    this.selectedTags.every(tag => recipe.tags && recipe.tags.includes(tag));
+                                    this.selectedTags.every(tag => tags.includes(tag));
                 return matchesSearch && matchesTags;
             });
 
@@ -291,6 +294,14 @@ export function cookbook() {
         handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
+                // Client-side size validation (10 MB limit matches backend)
+                const MAX_SIZE = 10 * 1024 * 1024;
+                if (file.size > MAX_SIZE) {
+                    this.showToast('Image too large. Maximum size is 10 MB.', 'error');
+                    this.selectedFile = null;
+                    this.formData.image_url = null;
+                    return;
+                }
                 this.selectedFile = file;
                 const reader = new FileReader();
                 reader.onload = (e) => {
