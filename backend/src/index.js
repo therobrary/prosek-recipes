@@ -210,6 +210,32 @@ function extractTitleFromHtml(html) {
   return match[1].replace(/\s+/g, ' ').trim();
 }
 
+// Optimize an image buffer: resize if too large, convert to WebP
+async function optimizeImage(buffer, maxDimension = 1600, quality = 80) {
+  try {
+    const img = new Image(buffer);
+    const { width, height } = img;
+    const mimeType = img.info?.mimeType || 'image/jpeg';
+
+    // Skip optimization for small images
+    if (width <= maxDimension && height <= maxDimension) {
+      return { data: buffer, contentType: mimeType };
+    }
+
+    // Scale down to maxDimension
+    const scale = maxDimension / Math.max(width, height);
+    const newWidth = Math.round(width * scale);
+    const newHeight = Math.round(height * scale);
+
+    const resized = img.resize(newWidth, newHeight);
+    const encoded = resized.encode({ format: 'webp', quality });
+    return { data: encoded.data, contentType: 'image/webp' };
+  } catch {
+    // If optimization fails (e.g. unsupported format like SVG/GIF), return original
+    return { data: buffer, contentType: 'image/jpeg' };
+  }
+}
+
 async function importImageToR2(imageUrl, requestUrl, env) {
   if (!imageUrl) return null;
 
@@ -235,24 +261,15 @@ async function importImageToR2(imageUrl, requestUrl, env) {
   const buffer = await response.arrayBuffer();
   if (buffer.byteLength > MAX_IMPORT_IMAGE_BYTES) return null;
 
-  // Derive extension from known mime types.
-  const mimeToExt = {
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/png': 'png',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/svg+xml': 'svg',
-    'image/avif': 'avif',
-  };
-  const ext = mimeToExt[contentType.split(';')[0].trim()] || 'bin';
+  // Optimize: resize large images and convert to WebP
+  const optimized = await optimizeImage(buffer);
 
   const timestamp = Date.now();
   const random = Math.random().toString(36).slice(2, 10);
-  const key = `imported/${timestamp}-${random}.${ext}`;
+  const key = `imported/${timestamp}-${random}.webp`;
 
-  await env.IMAGES_BUCKET.put(key, buffer, {
-    httpMetadata: { contentType: contentType.split(';')[0].trim() },
+  await env.IMAGES_BUCKET.put(key, optimized.data, {
+    httpMetadata: { contentType: optimized.contentType },
   });
 
   const origin = new URL(requestUrl).origin;
@@ -458,19 +475,14 @@ export default {
           // Generate a unique filename
           const timestamp = Date.now();
           const random = Math.random().toString(36).substring(2, 10);
-          const mimeToExt = {
-              'image/jpeg': 'jpg',
-              'image/jpg': 'jpg',
-              'image/png': 'png',
-              'image/gif': 'gif',
-              'image/webp': 'webp',
-              'image/svg+xml': 'svg'
-          };
-          const extension = mimeToExt[contentType] || 'bin';
-          const key = `${timestamp}-${random}.${extension}`;
+          const key = `${timestamp}-${random}.webp`;
 
-          await env.IMAGES_BUCKET.put(key, request.body, {
-              httpMetadata: { contentType: contentType }
+          // Optimize: resize large images and convert to WebP
+          const uploadBuffer = await request.arrayBuffer();
+          const optimized = await optimizeImage(uploadBuffer);
+
+          await env.IMAGES_BUCKET.put(key, optimized.data, {
+              httpMetadata: { contentType: optimized.contentType }
           });
 
           // Return the full URL that can be used to retrieve the image
@@ -668,6 +680,15 @@ export default {
             });
         }
 
+        // Check for duplicate title (case-insensitive)
+        const { results: existing } = await env.DB.prepare("SELECT id FROM recipes WHERE LOWER(title) = LOWER(?)").bind(data.title.trim()).all();
+        if (existing.length > 0) {
+            return new Response(JSON.stringify({ error: 'Duplicate title', details: ['A recipe with this title already exists'] }), {
+                status: 409,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
         const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
 
         const result = await env.DB.prepare(
@@ -699,6 +720,15 @@ export default {
            }
 
            const { title, serves, cook_time, ingredients, directions, tags, image_url } = data;
+
+           // Check for duplicate title (case-insensitive), excluding this recipe
+           const { results: dupCheck } = await env.DB.prepare("SELECT id FROM recipes WHERE LOWER(title) = LOWER(?) AND id != ?").bind(title.trim(), id).all();
+           if (dupCheck.length > 0) {
+               return new Response(JSON.stringify({ error: 'Duplicate title', details: ['A recipe with this title already exists'] }), {
+                   status: 409,
+                   headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+               });
+           }
 
            // Delete old image from R2 if image_url has changed
            const { results: existingRecipe } = await env.DB.prepare('SELECT image_url FROM recipes WHERE id = ?').bind(id).all();
