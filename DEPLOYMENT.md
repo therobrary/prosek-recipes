@@ -112,7 +112,6 @@ Edit `backend/wrangler.toml` and update the `database_id`:
 name = "family-recipes-backend"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
-compatibility_flags = ["image_v2"]
 
 [[d1_databases]]
 binding = "DB"
