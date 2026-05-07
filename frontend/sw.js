@@ -1,6 +1,6 @@
-const CACHE_NAME = 'cari-recipes-v2';
-const STATIC_CACHE = 'cari-static-v2';
-const DYNAMIC_CACHE = 'cari-dynamic-v2';
+const CACHE_NAME = 'cari-recipes-v3';
+const STATIC_CACHE = 'cari-static-v3';
+const DYNAMIC_CACHE = 'cari-dynamic-v3';
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
