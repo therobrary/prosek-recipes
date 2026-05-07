@@ -22,12 +22,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        window.deferLoadingAlpine = (startAlpine) => {
-            window.startAlpine = startAlpine;
-        };
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <style>
         html {
@@ -1168,7 +1162,10 @@
 
     <script type="module">
         import './js/cookbook.js';
-        window.startAlpine?.();
+
+        const alpineScript = document.createElement('script');
+        alpineScript.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js';
+        document.head.appendChild(alpineScript);
     </script>
 
     <!-- Service Worker Registration & PWA Install -->

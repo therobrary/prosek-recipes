@@ -1,6 +1,6 @@
-const CACHE_NAME = 'cari-recipes-v3';
-const STATIC_CACHE = 'cari-static-v3';
-const DYNAMIC_CACHE = 'cari-dynamic-v3';
+const CACHE_NAME = 'cari-recipes-v4';
+const STATIC_CACHE = 'cari-static-v4';
+const DYNAMIC_CACHE = 'cari-dynamic-v4';
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -58,6 +58,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // App shell navigations must be network-first so frontend fixes are not stuck behind stale cache.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstWithCache(request));
     return;
   }
 
