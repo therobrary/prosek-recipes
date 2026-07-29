@@ -1,5 +1,8 @@
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = [
+// Allowed origins for CORS (M3: bound to env vars with a hardcoded safe default).
+// The hardcoded defaults are the known production and local-dev origins; in
+// environments where `ALLOWED_ORIGINS` is set (space-separated string), that
+// list is used instead.
+const DEFAULT_ALLOWED_ORIGINS = [
   'https://recipes.robrary.com',
   'https://family-recipes-backend.robrary.workers.dev',
   'http://localhost:3000',
@@ -7,6 +10,14 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:8080',
 ];
+
+function resolveAllowedOrigins(env) {
+  const fromEnv = env && env.ALLOWED_ORIGINS;
+  if (typeof fromEnv === 'string' && fromEnv.trim().length > 0) {
+    return fromEnv.trim().split(/\s+/).filter(Boolean);
+  }
+  return DEFAULT_ALLOWED_ORIGINS;
+}
 
 const DEFAULT_FETCH_HEADERS = {
   'User-Agent':
@@ -425,7 +436,10 @@ function validateRecipeData(data) {
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin');
-    
+
+    // Resolve allowlist from env (M3) — falls back to safe hardcoded defaults.
+    const ALLOWED_ORIGINS = resolveAllowedOrigins(env);
+
     // Check if origin is allowed
     const isAllowedOrigin = origin && ALLOWED_ORIGINS.includes(origin);
     
@@ -457,7 +471,15 @@ export default {
           const headers = new Headers();
           object.writeHttpMetadata(headers);
           headers.set('etag', object.httpEtag);
-          headers.set('Access-Control-Allow-Origin', '*');
+          // SECURITY (M1): restrict Access-Control-Allow-Origin to the allowlist
+          // rather than the previous wildcard, then add Vary: Origin so caches
+          // don't serve a poisoned ACAO header to a different consumer.
+          // (Public images intentionally allow all consumers, but Vary: Origin
+          // ensures per-origin caching so non-allowlisted clients never get
+          // the wrong ACAO back.)
+          headers.set('Access-Control-Allow-Origin',
+                      isAllowedOrigin ? origin : ALLOWED_ORIGINS[0]);
+          headers.set('Vary', 'Origin');
           headers.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
           return new Response(object.body, {

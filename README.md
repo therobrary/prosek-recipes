@@ -57,3 +57,18 @@ A digital cookbook application for preserving and sharing treasured family recip
 ## License
 
 [MIT](LICENSE)
+
+
+## Security
+
+CORS is configured via an allowlist (`ALLOWED_ORIGINS`), not the previous `*` wildcard on the `/api/images/*` endpoint. Image responses also include `Vary: Origin` to prevent poisoned-ACAO cache leaks.
+
+The allowlist can be overridden at deploy time via the `ALLOWED_ORIGINS` worker secret (space-separated origins); when unset, a hardcoded safe default is used.
+
+The CORS regression test lives at `/tmp/xss-smoke/prosek-cors-smoke.js`. Run it after any change to `backend/src/index.js`:
+
+```bash
+cd /tmp/xss-smoke && node prosek-cors-smoke.js /Users/robert/Documents/codeprojects/prosek-recipes/backend/src/index.js
+```
+
+A passing run prints `OK: prosek-recipes CORS never returns ACAO=*; ...` and exits 0. A failing run shows the offending origin and exits 1.
